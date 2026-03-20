@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title_suffix %} - TV Shows{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">TV Shows</h1>
+    <button class="btn btn-primary" onclick="openSearchModal('tv', 'Add a TV Show')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add TV Show
+    </button>
+</div>
+
+<div class="tab-bar" id="filterTabs">
+    <button class="tab-btn active" data-status="" onclick="filterShows('')">All</button>
+    <button class="tab-btn" data-status="watchlist" onclick="filterShows('watchlist')">Watchlist</button>
+    <button class="tab-btn" data-status="watching" onclick="filterShows('watching')">Watching</button>
+    <button class="tab-btn" data-status="watched" onclick="filterShows('watched')">Watched</button>
+    <button class="tab-btn" data-status="dropped" onclick="filterShows('dropped')">Dropped</button>
+</div>
+
+<div class="media-grid" id="showGrid">
+    <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allShows = [];
+let currentFilter = '';
+
+async function loadPageData() {
+    try {
+        allShows = await api('/api/tvshows');
+        renderShows();
+    } catch (err) {
+        document.getElementById('showGrid').innerHTML = `<p class="search-hint" style="grid-column:1/-1;color:var(--danger)">Error loading TV shows: ${err.message}</p>`;
+    }
+}
+
+function filterShows(status) {
+    currentFilter = status;
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.status === status);
+    });
+    renderShows();
+}
+
+function renderShows() {
+    const filtered = currentFilter
+        ? allShows.filter(s => s.status === currentFilter)
+        : allShows;
+
+    const grid = document.getElementById('showGrid');
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state" style="grid-column:1/-1">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                    <polyline points="17 2 12 7 7 2"></polyline>
+                </svg>
+                <h3>${currentFilter ? 'No shows in this category' : 'No TV shows yet'}</h3>
+                <p>Search and add TV shows to start tracking your watches.</p>
+                <button class="btn btn-primary" onclick="openSearchModal('tv', 'Add a TV Show')">Add Your First TV Show</button>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = filtered.map(s => renderMediaCard(s, 'tv')).join('');
+}
+
+loadPageData();
+</script>
+{% endblock %}

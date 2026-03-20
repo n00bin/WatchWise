@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WatchWise - Login</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#7c3aed">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+        .auth-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid var(--border);
+        }
+        .auth-brand {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .auth-brand svg { color: var(--primary); margin-bottom: 8px; }
+        .auth-brand h1 { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+        .auth-brand p { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+        .auth-form { display: flex; flex-direction: column; gap: 16px; }
+        .auth-form label { font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 4px; }
+        .auth-form input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .auth-form input:focus { outline: none; border-color: var(--primary); }
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            margin-top: 8px;
+        }
+        .auth-btn:hover { background: var(--primary-light); }
+        .auth-toggle {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+        .auth-toggle a { color: var(--primary-light); cursor: pointer; text-decoration: none; }
+        .auth-error {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #ef4444;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            display: none;
+        }
+        #usernameGroup { display: none; }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <div class="auth-brand">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                <line x1="7" y1="2" x2="7" y2="22"></line>
+                <line x1="17" y1="2" x2="17" y2="22"></line>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <line x1="2" y1="7" x2="7" y2="7"></line>
+                <line x1="2" y1="17" x2="7" y2="17"></line>
+                <line x1="17" y1="7" x2="22" y2="7"></line>
+                <line x1="17" y1="17" x2="22" y2="17"></line>
+            </svg>
+            <h1>WatchWise</h1>
+            <p id="authSubtitle">Sign in to your account</p>
+        </div>
+
+        <div class="auth-error" id="authError"></div>
+
+        <form class="auth-form" onsubmit="handleAuth(event)">
+            <div id="usernameGroup">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Choose a username" autocomplete="username">
+            </div>
+            <div>
+                <label for="email">Email or Username</label>
+                <input type="text" id="email" placeholder="Email or username" autocomplete="email" required>
+            </div>
+            <div>
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Your password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="auth-btn" id="authBtn">Sign In</button>
+        </form>
+
+        <div class="auth-toggle">
+            <span id="toggleText">Don't have an account?</span>
+            <a onclick="toggleMode()" id="toggleLink">Create one</a>
+        </div>
+    </div>
+
+    <script>
+    let isRegister = false;
+
+    function toggleMode() {
+        isRegister = !isRegister;
+        document.getElementById('usernameGroup').style.display = isRegister ? 'block' : 'none';
+        document.getElementById('authBtn').textContent = isRegister ? 'Create Account' : 'Sign In';
+        document.getElementById('authSubtitle').textContent = isRegister ? 'Create your account' : 'Sign in to your account';
+        document.getElementById('toggleText').textContent = isRegister ? 'Already have an account?' : "Don't have an account?";
+        document.getElementById('toggleLink').textContent = isRegister ? 'Sign in' : 'Create one';
+        document.getElementById('authError').style.display = 'none';
+        document.getElementById('password').autocomplete = isRegister ? 'new-password' : 'current-password';
+    }
+
+    async function handleAuth(e) {
+        e.preventDefault();
+        const errEl = document.getElementById('authError');
+        errEl.style.display = 'none';
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const username = document.getElementById('username').value.trim();
+
+        const url = isRegister ? '/api/auth/register' : '/api/auth/login';
+        const body = isRegister
+            ? { username, email, password }
+            : { email, password };
+
+        try {
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+
+            const data = await resp.json();
+
+            if (!resp.ok) {
+                errEl.textContent = data.detail || 'Something went wrong';
+                errEl.style.display = 'block';
+                return;
+            }
+
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('username', data.username);
+            window.location.href = '/';
+        } catch (err) {
+            errEl.textContent = 'Connection error. Please try again.';
+            errEl.style.display = 'block';
+        }
+    }
+
+    // If already logged in, redirect
+    if (localStorage.getItem('access_token')) {
+        window.location.href = '/';
+    }
+    </script>
+</body>
+</html>

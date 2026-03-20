@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+data/watchwise.db
+data/watchwise.db.backup
+data/settings.json
+*.egg-info/
+dist/
+build/
+.venv/
+venv/

@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block title_suffix %} - Anime{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Anime</h1>
+    <button class="btn btn-primary" onclick="openSearchModal('anime', 'Add Anime')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add Anime
+    </button>
+</div>
+
+<div class="tab-bar" id="filterTabs">
+    <button class="tab-btn active" data-status="" onclick="filterAnime('')">All</button>
+    <button class="tab-btn" data-status="plan_to_watch" onclick="filterAnime('plan_to_watch')">Plan to Watch</button>
+    <button class="tab-btn" data-status="watching" onclick="filterAnime('watching')">Watching</button>
+    <button class="tab-btn" data-status="completed" onclick="filterAnime('completed')">Completed</button>
+    <button class="tab-btn" data-status="on_hold" onclick="filterAnime('on_hold')">On Hold</button>
+    <button class="tab-btn" data-status="dropped" onclick="filterAnime('dropped')">Dropped</button>
+</div>
+
+<div class="media-grid" id="animeGrid">
+    <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allAnime = [];
+let currentFilter = '';
+
+async function loadPageData() {
+    try {
+        allAnime = await api('/api/anime');
+        renderAnime();
+    } catch (err) {
+        document.getElementById('animeGrid').innerHTML = `<p class="search-hint" style="grid-column:1/-1;color:var(--danger)">Error loading anime: ${err.message}</p>`;
+    }
+}
+
+function filterAnime(status) {
+    currentFilter = status;
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.status === status);
+    });
+    renderAnime();
+}
+
+function renderAnime() {
+    const filtered = currentFilter
+        ? allAnime.filter(a => a.status === currentFilter)
+        : allAnime;
+
+    const grid = document.getElementById('animeGrid');
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state" style="grid-column:1/-1">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
+                <h3>${currentFilter ? 'No anime in this category' : 'No anime yet'}</h3>
+                <p>Search and add anime to start tracking your watches.</p>
+                <button class="btn btn-primary" onclick="openSearchModal('anime', 'Add Anime')">Add Your First Anime</button>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = filtered.map(a => renderAnimeCard(a)).join('');
+}
+
+function renderAnimeCard(a) {
+    const statusLabels = {
+        plan_to_watch: 'Plan to Watch',
+        watching: 'Watching',
+        completed: 'Completed',
+        on_hold: 'On Hold',
+        dropped: 'Dropped',
+    };
+    const statusLabel = statusLabels[a.status] || a.status;
+    const statusClass = a.status === 'completed' ? 'watched' : a.status === 'plan_to_watch' ? 'watchlist' : a.status;
+    const displayTitle = a.title_english || a.title;
+
+    return `
+        <div class="media-card" onclick='openAnimeDetail(${JSON.stringify(a).replace(/'/g, "&#39;")})'>
+            <div class="poster-wrap">
+                ${a.poster_url
+                    ? `<img src="${a.poster_url}" alt="${escapeHtml(displayTitle)}" loading="lazy">`
+                    : '<div class="no-poster">No Poster</div>'}
+                ${a.user_rating ? `<div class="card-badge">&#9733; ${a.user_rating} &mdash; ${RATING_LABELS[a.user_rating]}</div>` : ''}
+                <div class="status-badge ${statusClass}">${statusLabel}</div>
+            </div>
+            <div class="card-info">
+                <div class="card-title" title="${escapeHtml(displayTitle)}">${escapeHtml(displayTitle)}</div>
+                ${a.title_english && a.title_english !== a.title ? `<div style="font-size:0.7rem;color:var(--text-dim);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px" title="${escapeHtml(a.title)}">${escapeHtml(a.title)}</div>` : ''}
+                <div class="card-meta">
+                    <span>${a.year || 'N/A'}</span>
+                    <span>${a.episodes || '?'} eps</span>
+                    ${a.mal_score ? `<span>MAL ${a.mal_score.toFixed(1)}</span>` : ''}
+                </div>
+                ${a.user_rating ? renderStars(a.user_rating) : ''}
+            </div>
+        </div>
+    `;
+}
+
+function openAnimeDetail(a) {
+    currentDetailItem = a;
+    currentDetailType = 'anime';
+
+    document.getElementById('detailTitle').textContent = a.title_english || a.title;
+
+    const statusOptions = ['plan_to_watch', 'watching', 'completed', 'on_hold', 'dropped'];
+    const statusLabels = {
+        plan_to_watch: 'Plan to Watch',
+        watching: 'Watching',
+        completed: 'Completed',
+        on_hold: 'On Hold',
+        dropped: 'Dropped',
+    };
+
+    let metaHtml = `<span>${a.year || 'N/A'}</span>`;
+    if (a.episodes) metaHtml += `<span>${a.episodes} episodes</span>`;
+    if (a.anime_type) metaHtml += `<span>${a.anime_type}</span>`;
+    if (a.mal_score) metaHtml += `<span>MAL ${a.mal_score.toFixed(1)}</span>`;
+
+    const genres = a.genres || [];
+    const themes = a.themes || [];
+    const studios = a.studios || [];
+
+    document.getElementById('detailBody').innerHTML = `
+        <div class="detail-poster-row">
+            <div class="detail-poster">
+                ${a.poster_url ? `<img src="${a.poster_url}" alt="">` : '<div class="no-poster" style="height:210px;display:flex;align-items:center;justify-content:center;background:var(--card);border-radius:8px">No Poster</div>'}
+            </div>
+            <div class="detail-info">
+                <div class="detail-genres">
+                    ${genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}
+                    ${themes.map(t => `<span class="genre-tag" style="background:rgba(6,182,212,0.2);color:var(--secondary)">${t}</span>`).join('')}
+                </div>
+                <div class="detail-meta">${metaHtml}</div>
+                ${studios.length ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px">Studio: ${studios.join(', ')}</div>` : ''}
+                <div style="margin-bottom:12px">
+                    <label style="font-size:0.82rem;color:var(--text-muted);display:block;margin-bottom:4px">Status</label>
+                    <select class="form-input" style="width:auto;padding:6px 10px" onchange="updateAnimeStatus(this.value)">
+                        ${statusOptions.map(s => `<option value="${s}" ${a.status === s ? 'selected' : ''}>${statusLabels[s]}</option>`).join('')}
+                    </select>
+                </div>
+                ${a.status === 'watching' ? `
+                <div style="margin-bottom:12px">
+                    <label style="font-size:0.82rem;color:var(--text-muted);display:block;margin-bottom:4px">Progress</label>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <input type="number" id="animeEpInput" class="form-input" style="width:80px;padding:6px 10px" value="${a.current_episode || 0}" min="0" max="${a.episodes || 9999}">
+                        <span style="font-size:0.82rem;color:var(--text-muted)">/ ${a.episodes || '?'} eps</span>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+        <div class="detail-overview">${a.synopsis || 'No synopsis available.'}</div>
+        <div class="detail-rating">
+            <h4>Your Rating</h4>
+            ${renderStars(a.user_rating || 0, true, 'rateItem')}
+            <div class="detail-rating-label" id="detailRatingLabel">${a.user_rating ? RATING_LABELS[a.user_rating] : 'Not rated yet'}</div>
+        </div>
+        <div class="detail-notes">
+            <label style="font-size:0.82rem;color:var(--text-muted);display:block;margin-bottom:4px">Notes</label>
+            <textarea id="detailNotes" placeholder="Add personal notes...">${a.notes || ''}</textarea>
+        </div>
+        <div class="detail-actions">
+            <button class="btn btn-primary btn-sm" onclick="saveAnimeDetail()">Save Changes</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAnimeDetail()">Remove</button>
+        </div>
+    `;
+
+    document.getElementById('detailModal').classList.add('open');
+}
+
+async function updateAnimeStatus(status) {
+    try {
+        await api(`/api/anime/${currentDetailItem.id}`, { method: 'PUT', body: { status } });
+        currentDetailItem.status = status;
+        showToast(`Status updated to ${status.replace(/_/g, ' ')}`, 'success');
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+async function saveAnimeDetail() {
+    const notes = document.getElementById('detailNotes').value;
+    const body = {
+        user_rating: currentDetailItem.user_rating,
+        notes: notes,
+    };
+
+    const epInput = document.getElementById('animeEpInput');
+    if (epInput) {
+        body.current_episode = parseInt(epInput.value) || 0;
+    }
+
+    try {
+        await api(`/api/anime/${currentDetailItem.id}`, { method: 'PUT', body });
+        showToast('Saved!', 'success');
+        closeDetailModal();
+        loadPageData();
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+async function deleteAnimeDetail() {
+    if (!confirm(`Remove "${currentDetailItem.title}" from your list?`)) return;
+    try {
+        await api(`/api/anime/${currentDetailItem.id}`, { method: 'DELETE' });
+        showToast('Removed!', 'success');
+        closeDetailModal();
+        loadPageData();
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+loadPageData();
+</script>
+{% endblock %}

@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block title_suffix %} - For You{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Recommended For You</h1>
+    <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="shuffleRecs()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 3 21 3 21 8"></polyline>
+                <line x1="4" y1="20" x2="21" y2="3"></line>
+                <polyline points="21 16 21 21 16 21"></polyline>
+                <line x1="15" y1="15" x2="21" y2="21"></line>
+                <line x1="4" y1="4" x2="9" y2="9"></line>
+            </svg>
+            Surprise Me
+        </button>
+        <button class="btn btn-secondary" onclick="loadPageData()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            Refresh
+        </button>
+    </div>
+</div>
+
+<div class="tab-bar" id="recTabs">
+    <button class="tab-btn active" data-type="movies" onclick="showRecType('movies')">Movies</button>
+    <button class="tab-btn" data-type="tvshows" onclick="showRecType('tvshows')">TV Shows</button>
+    <button class="tab-btn" data-type="anime" onclick="showRecType('anime')">Anime</button>
+</div>
+
+<div id="recContent">
+    <div class="loading-center"><div class="spinner"></div></div>
+</div>
+
+<!-- Action Menu -->
+<div class="action-menu-overlay" id="actionMenu" onclick="closeActionMenu(event)">
+    <div class="action-menu">
+        <div class="action-menu-title" id="actionMenuTitle"></div>
+        <div class="action-menu-overview" id="actionMenuOverview"></div>
+        <div class="action-menu-meta" id="actionMenuMeta"></div>
+
+        <!-- Step 1: Choose action -->
+        <div class="action-menu-buttons" id="actionStep1">
+            <button class="action-menu-btn watchlist-btn" onclick="doRecAction('watchlist')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span id="actionWatchlistLabel">Add to Watchlist</span>
+            </button>
+            <button class="action-menu-btn watched-btn" onclick="showRatingStep()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <span id="actionWatchedLabel">Mark as Watched</span>
+            </button>
+            <button class="action-menu-btn watching-btn" onclick="doRecAction('watching')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                </svg>
+                Currently Watching
+            </button>
+            <button class="action-menu-btn cancel-btn" onclick="closeActionMenu()">Cancel</button>
+        </div>
+
+        <!-- Step 2: Rate it -->
+        <div class="action-menu-rating" id="actionStep2" style="display:none">
+            <div class="rating-prompt">How would you rate it?</div>
+            <div class="rating-stars-row" id="recRatingStars">
+                <button class="rec-star" data-value="1" onclick="selectRecRating(1)">&#9733;</button>
+                <button class="rec-star" data-value="2" onclick="selectRecRating(2)">&#9733;</button>
+                <button class="rec-star" data-value="3" onclick="selectRecRating(3)">&#9733;</button>
+                <button class="rec-star" data-value="4" onclick="selectRecRating(4)">&#9733;</button>
+                <button class="rec-star" data-value="5" onclick="selectRecRating(5)">&#9733;</button>
+            </div>
+            <div class="rating-label" id="ratingLabel">Tap a star</div>
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn btn-primary" style="flex:1" id="confirmWatchedBtn" onclick="doRecAction('watched')" disabled>Add to Watched</button>
+                <button class="btn btn-secondary" onclick="backToStep1()">Back</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentRecs = [];
+let currentRecType = 'movies';
+let currentPage = 1;
+let totalPages = 1;
+let isShuffled = false;
+let selectedRec = null;
+let selectedRating = 0;
+
+async function loadPageData(page = 1, shuffle = false) {
+    isShuffled = shuffle;
+    currentPage = page;
+
+    document.getElementById('recContent').innerHTML = `
+        <div class="loading-center" style="flex-direction:column;gap:12px">
+            <div class="spinner"></div>
+            <p style="color:var(--text-muted);font-size:0.82rem">${shuffle ? 'Shuffling recommendations...' : 'Analyzing your taste profile...'}</p>
+        </div>
+    `;
+
+    let base;
+    if (currentRecType === 'anime') {
+        base = '/api/recommendations/anime';
+    } else if (currentRecType === 'tvshows') {
+        base = '/api/recommendations/tvshows';
+    } else {
+        base = '/api/recommendations/movies';
+    }
+    const cacheBust = shuffle ? `&_=${Date.now()}` : '';
+    const endpoint = `${base}?page=${page}&shuffle=${shuffle}${cacheBust}`;
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+
+        const resp = await fetch(endpoint, { signal: controller.signal });
+        clearTimeout(timeout);
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+            throw new Error(err.detail || 'Request failed');
+        }
+
+        const data = await resp.json();
+        currentRecs = data.results;
+        totalPages = data.total_pages;
+        currentPage = data.page;
+
+        renderRecs(currentRecs);
+    } catch (err) {
+        const msg = err.name === 'AbortError'
+            ? 'Request timed out. Try again.'
+            : err.message;
+        document.getElementById('recContent').innerHTML = `
+            <div class="empty-state">
+                <h3>Couldn't load recommendations</h3>
+                <p>${msg}</p>
+                <button class="btn btn-primary" onclick="loadPageData()">Try Again</button>
+            </div>
+        `;
+    }
+}
+
+function shuffleRecs() {
+    loadPageData(1, true);
+}
+
+function showRecType(type) {
+    currentRecType = type;
+    currentPage = 1;
+    document.querySelectorAll('#recTabs .tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+    });
+    loadPageData();
+}
+
+function goToPage(page) {
+    loadPageData(page, isShuffled);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderRecs(recs) {
+    const container = document.getElementById('recContent');
+    const isAnime = currentRecType === 'anime';
+
+    if (recs.length === 0) {
+        const mediaLabel = isAnime ? 'anime' : (currentRecType === 'movies' ? 'movies' : 'TV shows');
+        container.innerHTML = `
+            <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <h3>${currentPage > 1 ? 'No more recommendations' : 'No recommendations yet'}</h3>
+                <p>${currentPage > 1
+                    ? 'You\'ve seen all the recommendations. Try Surprise Me for a fresh mix!'
+                    : 'Watch and rate some ' + mediaLabel + ' first. The more you rate (especially 4-5 stars), the better recommendations you\'ll get!'}</p>
+                ${currentPage > 1 ? '<button class="btn btn-secondary" onclick="goToPage(1)">Back to Page 1</button>' : ''}
+            </div>
+        `;
+        return;
+    }
+
+    let paginationHtml = '';
+    if (totalPages > 1) {
+        paginationHtml = `
+            <div class="rec-pagination">
+                <button class="btn btn-secondary btn-sm" onclick="goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>
+                    &larr; Previous
+                </button>
+                <span class="rec-page-info">Page ${currentPage} of ${totalPages}</span>
+                <button class="btn btn-secondary btn-sm" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>
+                    Next &rarr;
+                </button>
+            </div>
+        `;
+    }
+
+    container.innerHTML = `
+        <div class="media-grid">
+            ${recs.map((r, i) => {
+                if (isAnime) {
+                    return `
+                        <div class="rec-card" onclick="openActionMenu(${i})">
+                            <div class="poster-wrap">
+                                ${r.poster_url
+                                    ? `<img src="${r.poster_url}" alt="${escapeHtml(r.title)}" loading="lazy">`
+                                    : '<div class="no-poster">No Poster</div>'}
+                                <div class="rec-score">${r.score}</div>
+                            </div>
+                            <div class="card-info">
+                                <div class="card-title" title="${escapeHtml(r.title)}">${escapeHtml(r.title_english || r.title)}</div>
+                                <div class="card-meta">
+                                    ${r.episodes ? r.episodes + ' eps' : 'N/A'}
+                                    ${r.mal_score ? '&bull; MAL ' + r.mal_score.toFixed(1) : ''}
+                                </div>
+                                <div class="rec-because">
+                                    Because you liked: ${r.because.map(b => escapeHtml(b)).join(', ')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="rec-card" onclick="openActionMenu(${i})">
+                        <div class="poster-wrap">
+                            ${r.poster_path
+                                ? `<img src="${r.poster_path}" alt="${escapeHtml(r.title)}" loading="lazy">`
+                                : '<div class="no-poster">No Poster</div>'}
+                            <div class="rec-score">${r.score}</div>
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title" title="${escapeHtml(r.title)}">${escapeHtml(r.title)}</div>
+                            <div class="card-meta">
+                                ${(r.release_date || r.first_air_date || '').substring(0, 4) || 'N/A'}
+                                &bull; TMDB ${r.tmdb_rating.toFixed(1)}
+                            </div>
+                            <div class="rec-because">
+                                Because you liked: ${r.because.map(b => escapeHtml(b)).join(', ')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+        ${paginationHtml}
+    `;
+}
+
+// ─── Action Menu ────────────────────────────────────────────────────
+
+function openActionMenu(index) {
+    selectedRec = currentRecs[index];
+    selectedRating = 0;
+
+    const isAnime = currentRecType === 'anime';
+
+    document.getElementById('actionMenuTitle').textContent = isAnime
+        ? (selectedRec.title_english || selectedRec.title)
+        : selectedRec.title;
+    document.getElementById('actionMenuOverview').textContent = (selectedRec.overview || selectedRec.synopsis || '').substring(0, 150) + ((selectedRec.overview || selectedRec.synopsis || '').length > 150 ? '...' : '');
+
+    if (isAnime) {
+        document.getElementById('actionMenuMeta').innerHTML = `
+            ${selectedRec.episodes ? selectedRec.episodes + ' eps' : 'N/A'}
+            ${selectedRec.mal_score ? '&bull; MAL ' + selectedRec.mal_score.toFixed(1) : ''} &bull;
+            Because you liked: <span style="color:var(--primary-light)">${selectedRec.because.map(b => escapeHtml(b)).join(', ')}</span>
+        `;
+    } else {
+        const year = (selectedRec.release_date || selectedRec.first_air_date || '').substring(0, 4) || 'N/A';
+        document.getElementById('actionMenuMeta').innerHTML = `
+            ${year} &bull; TMDB ${selectedRec.tmdb_rating.toFixed(1)} &bull;
+            Because you liked: <span style="color:var(--primary-light)">${selectedRec.because.map(b => escapeHtml(b)).join(', ')}</span>
+        `;
+    }
+
+    // Update labels for anime
+    document.getElementById('actionWatchlistLabel').textContent = isAnime ? 'Plan to Watch' : 'Add to Watchlist';
+    document.getElementById('actionWatchedLabel').textContent = isAnime ? 'Mark as Completed' : 'Mark as Watched';
+
+    document.getElementById('actionStep1').style.display = '';
+    document.getElementById('actionStep2').style.display = 'none';
+    resetRatingStars();
+
+    document.getElementById('actionMenu').classList.add('open');
+}
+
+function closeActionMenu(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('actionMenu').classList.remove('open');
+    selectedRec = null;
+    selectedRating = 0;
+}
+
+function showRatingStep() {
+    document.getElementById('actionStep1').style.display = 'none';
+    document.getElementById('actionStep2').style.display = '';
+    resetRatingStars();
+
+    const isAnime = currentRecType === 'anime' || (selectedRec && selectedRec.media_type === 'anime');
+    document.getElementById('confirmWatchedBtn').textContent = isAnime ? 'Add as Completed' : 'Add to Watched';
+}
+
+function backToStep1() {
+    document.getElementById('actionStep1').style.display = '';
+    document.getElementById('actionStep2').style.display = 'none';
+    selectedRating = 0;
+}
+
+function resetRatingStars() {
+    selectedRating = 0;
+    document.querySelectorAll('.rec-star').forEach(s => s.classList.remove('active'));
+    document.getElementById('ratingLabel').textContent = 'Tap a star';
+    document.getElementById('confirmWatchedBtn').disabled = true;
+}
+
+function selectRecRating(value) {
+    selectedRating = value;
+    document.querySelectorAll('.rec-star').forEach(s => {
+        s.classList.toggle('active', parseInt(s.dataset.value) <= value);
+    });
+    document.getElementById('ratingLabel').textContent = RATING_LABELS[value];
+    document.getElementById('confirmWatchedBtn').disabled = false;
+}
+
+async function doRecAction(status) {
+    if (!selectedRec) return;
+
+    const isAnime = currentRecType === 'anime' || selectedRec.media_type === 'anime';
+    let endpoint, body, title;
+
+    if (isAnime) {
+        endpoint = '/api/anime';
+        title = selectedRec.title_english || selectedRec.title;
+        // Map statuses for anime
+        let animeStatus = status;
+        if (status === 'watchlist') animeStatus = 'plan_to_watch';
+        if (status === 'watched') animeStatus = 'completed';
+        body = { mal_id: selectedRec.mal_id, status: animeStatus };
+        if (animeStatus === 'completed' && selectedRating > 0) {
+            body.user_rating = selectedRating;
+        }
+    } else {
+        const type = (currentRecType === 'tvshows' || selectedRec.media_type === 'tv') ? 'tv' : 'movie';
+        endpoint = type === 'movie' ? '/api/movies' : '/api/tvshows';
+        title = selectedRec.title;
+        body = { tmdb_id: selectedRec.tmdb_id, status: status };
+        if (status === 'watched' && selectedRating > 0) {
+            body.user_rating = selectedRating;
+        }
+    }
+
+    closeActionMenu();
+
+    try {
+        await api(endpoint, { method: 'POST', body });
+        let label = status === 'watchlist' ? 'watchlist' : status === 'watched' ? 'watched' : 'currently watching';
+        if (isAnime) {
+            label = status === 'watchlist' ? 'plan to watch' : status === 'watched' ? 'completed' : 'watching';
+        }
+        let msg = `Added "${title}" as ${label}!`;
+        if ((status === 'watched') && selectedRating > 0) {
+            msg += ` Rated ${selectedRating}/5`;
+        }
+        showToast(msg, 'success');
+        loadPageData();
+    } catch (err) {
+        if (err.message.includes('already')) {
+            showToast('Already in your list!', 'info');
+        } else {
+            showToast(`Error: ${err.message}`, 'error');
+        }
+    }
+}
+
+// Close action menu on Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeActionMenu();
+});
+
+loadPageData();
+</script>
+{% endblock %}

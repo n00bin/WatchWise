@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title_suffix %} - Settings{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Settings</h1>
+</div>
+
+<div class="settings-section">
+    <h3>Account</h3>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:white" id="accountAvatar">?</div>
+        <div>
+            <div style="font-weight:600;font-size:1rem" id="accountUsername">Loading...</div>
+            <div style="font-size:0.82rem;color:var(--text-muted)" id="accountEmail"></div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Change Password</label>
+        <input type="password" id="newPassword" class="form-input" placeholder="New password (min 6 characters)" style="max-width:400px">
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
+        <span id="passwordResult" style="font-size:0.82rem;margin-left:8px"></span>
+    </div>
+</div>
+
+<div class="settings-section">
+    <h3>About WatchWise</h3>
+    <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.6">
+        Your personal movie, TV show & anime tracker with smart recommendations.
+        Track what you watch, rate it, and discover new favorites based on your taste.
+    </p>
+    <p style="font-size:0.78rem;color:var(--text-dim);margin-top:12px">
+        Version 5.0
+    </p>
+</div>
+
+<div class="settings-section">
+    <h3 style="color:var(--danger)">Danger Zone</h3>
+    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
+        Permanently delete your account and all your data. This cannot be undone.
+    </p>
+    <button class="btn btn-danger" onclick="deleteAccount()">Delete Account</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadPageData() {
+    try {
+        const user = await api('/api/auth/me');
+        document.getElementById('accountUsername').textContent = user.username;
+        document.getElementById('accountEmail').textContent = user.email;
+        document.getElementById('accountAvatar').textContent = user.username.charAt(0).toUpperCase();
+    } catch (err) {
+        console.error('Failed to load account info:', err);
+    }
+}
+
+async function changePassword() {
+    const password = document.getElementById('newPassword').value;
+    const result = document.getElementById('passwordResult');
+
+    if (!password || password.length < 6) {
+        result.textContent = 'Password must be at least 6 characters';
+        result.style.color = 'var(--danger)';
+        return;
+    }
+
+    try {
+        await api('/api/auth/change-password', {
+            method: 'POST',
+            body: { password },
+        });
+        result.textContent = 'Password updated!';
+        result.style.color = 'var(--success)';
+        document.getElementById('newPassword').value = '';
+    } catch (err) {
+        result.textContent = `Error: ${err.message}`;
+        result.style.color = 'var(--danger)';
+    }
+}
+
+async function deleteAccount() {
+    if (!confirm('Are you sure? This will permanently delete your account and ALL your data.')) return;
+    if (!confirm('This CANNOT be undone. Type "delete" in the next prompt to confirm.')) return;
+
+    const typed = prompt('Type "delete" to confirm account deletion:');
+    if (typed !== 'delete') {
+        showToast('Account deletion cancelled', 'info');
+        return;
+    }
+
+    try {
+        await api('/api/auth/delete-account', { method: 'DELETE' });
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('username');
+        window.location.href = '/login';
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+loadPageData();
+</script>
+{% endblock %}

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title_suffix %} - Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+</div>
+
+{% if not has_api_key %}
+<div class="setup-banner">
+    <h3>Welcome to WatchWise!</h3>
+    <p>To get started, you need a free TMDB API key. It takes 30 seconds to sign up.</p>
+    <a href="/settings" class="btn btn-primary">Set Up API Key</a>
+</div>
+{% endif %}
+
+<div class="stats-row" id="statsRow">
+    <div class="stat-card purple">
+        <span class="stat-label">Movies Watched</span>
+        <span class="stat-value" id="statMovies">-</span>
+        <span class="stat-sub" id="statMoviesTotal"></span>
+    </div>
+    <div class="stat-card cyan">
+        <span class="stat-label">TV Shows Watched</span>
+        <span class="stat-value" id="statShows">-</span>
+        <span class="stat-sub" id="statShowsTotal"></span>
+    </div>
+    <div class="stat-card amber">
+        <span class="stat-label">Avg Rating</span>
+        <span class="stat-value" id="statAvgRating">-</span>
+        <span class="stat-sub" id="statAvgSub"></span>
+    </div>
+    <div class="stat-card green">
+        <span class="stat-label">Total Watch Time</span>
+        <span class="stat-value" id="statHours">-</span>
+        <span class="stat-sub" id="statHoursSub"></span>
+    </div>
+</div>
+
+<div class="chart-section">
+    <div class="chart-card">
+        <h3>Genre Breakdown</h3>
+        <div class="chart-bar-group" id="genreChart">
+            <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+    </div>
+    <div class="chart-card">
+        <h3>Rating Distribution</h3>
+        <div class="rating-bars" id="ratingChart">
+            <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="chart-section">
+    <div class="chart-card">
+        <h3>Monthly Activity</h3>
+        <div class="monthly-chart" id="monthlyChart">
+            <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+    </div>
+    <div class="chart-card">
+        <h3>Top Genres (by your rating)</h3>
+        <div class="top-genres-list" id="topGenres">
+            <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const GENRE_COLORS = [
+    '#7c3aed', '#06b6d4', '#f59e0b', '#10b981', '#ef4444',
+    '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#6366f1',
+    '#84cc16', '#e879f9', '#22d3ee', '#a3e635', '#fb923c',
+];
+
+async function loadPageData() {
+    try {
+        const stats = await api('/api/stats');
+        renderStats(stats);
+    } catch (err) {
+        console.error('Failed to load stats:', err);
+    }
+}
+
+function renderStats(s) {
+    // Overview stats
+    document.getElementById('statMovies').textContent = s.watched_movies;
+    document.getElementById('statMoviesTotal').textContent = `${s.total_movies} total tracked`;
+    document.getElementById('statShows').textContent = s.watched_tvshows;
+    document.getElementById('statShowsTotal').textContent = `${s.total_tvshows} total tracked`;
+
+    const avgAll = (s.avg_movie_rating && s.avg_tvshow_rating)
+        ? ((s.avg_movie_rating + s.avg_tvshow_rating) / 2).toFixed(1)
+        : (s.avg_movie_rating || s.avg_tvshow_rating || 0).toFixed(1);
+    document.getElementById('statAvgRating').textContent = `${avgAll}/5`;
+    document.getElementById('statAvgSub').textContent = `Movies ${s.avg_movie_rating}/5 | TV ${s.avg_tvshow_rating}/5`;
+
+    document.getElementById('statHours').textContent = `${s.total_hours}h`;
+    document.getElementById('statHoursSub').textContent = `${s.movie_hours}h movies | ${s.tv_hours}h TV`;
+
+    // Genre chart
+    const genres = Object.entries(s.genre_counts).slice(0, 10);
+    const maxGenre = genres.length ? Math.max(...genres.map(g => g[1])) : 1;
+    document.getElementById('genreChart').innerHTML = genres.length
+        ? genres.map(([name, count], i) => `
+            <div class="chart-bar-item">
+                <span class="chart-bar-label">${name}</span>
+                <div class="chart-bar-track">
+                    <div class="chart-bar-fill" style="width:${(count/maxGenre)*100}%;background:${GENRE_COLORS[i % GENRE_COLORS.length]}"></div>
+                </div>
+                <span class="chart-bar-value">${count}</span>
+            </div>
+        `).join('')
+        : '<p class="search-hint">No data yet. Start watching!</p>';
+
+    // Rating distribution
+    const dist = s.rating_distribution;
+    const maxRating = Math.max(...Object.values(dist), 1);
+    document.getElementById('ratingChart').innerHTML = [5, 4, 3, 2, 1].map(r => `
+        <div class="rating-bar-row">
+            <div class="rating-bar-label">${r} &#9733;</div>
+            <div class="rating-bar-track">
+                <div class="rating-bar-fill" style="width:${(dist[r]/maxRating)*100}%"></div>
+            </div>
+            <span class="rating-bar-count">${dist[r]}</span>
+        </div>
+    `).join('');
+
+    // Monthly chart
+    const monthly = Object.entries(s.monthly_watched);
+    const maxMonth = monthly.length ? Math.max(...monthly.map(m => m[1])) : 1;
+    document.getElementById('monthlyChart').innerHTML = monthly.length
+        ? monthly.slice(-12).map(([month, count]) => {
+            const label = month.substring(2); // "24-01" from "2024-01"
+            return `
+                <div class="monthly-bar">
+                    <div class="monthly-bar-count">${count}</div>
+                    <div class="monthly-bar-fill" style="height:${(count/maxMonth)*100}%"></div>
+                    <div class="monthly-bar-label">${label}</div>
+                </div>
+            `;
+        }).join('')
+        : '<p class="search-hint" style="width:100%;text-align:center">No watch history yet</p>';
+
+    // Top genres
+    const topGenres = s.top_genres;
+    document.getElementById('topGenres').innerHTML = topGenres.length
+        ? topGenres.map(([name, rating], i) => `
+            <div class="top-genre-item">
+                <span class="top-genre-rank">${i + 1}</span>
+                <span class="top-genre-name">${name}</span>
+                <span class="top-genre-rating">${rating} &#9733;</span>
+            </div>
+        `).join('')
+        : '<p class="search-hint">Rate some titles to see your top genres</p>';
+}
+
+loadPageData();
+</script>
+{% endblock %}
