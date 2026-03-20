@@ -24,4 +24,4 @@ services:
       - key: TRAKT_CLIENT_ID
         value: 187cd6197c24d45d167026b06f864894f4cfadc79ca649080e28873d9488b661
       - key: PYTHON_VERSION
-        value: "3.11"
+        value: "3.11.11"
