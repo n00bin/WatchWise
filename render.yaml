@@ -1,0 +1,27 @@
+databases:
+  - name: watchwise-db
+    plan: free
+    databaseName: watchwise
+
+services:
+  - type: web
+    name: watchwise
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: watchwise-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: TMDB_API_KEY
+        value: 7eecb7e5b3b4e7c74158da3218e2770b
+      - key: TASTEDIVE_API_KEY
+        value: 1070259-MovieRec-3A2A60A0
+      - key: TRAKT_CLIENT_ID
+        value: 187cd6197c24d45d167026b06f864894f4cfadc79ca649080e28873d9488b661
+      - key: PYTHON_VERSION
+        value: "3.11"

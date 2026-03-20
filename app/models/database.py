@@ -4,7 +4,8 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 from app.config import DATABASE_URL, DATA_DIR
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -21,7 +22,11 @@ def get_db():
 
 
 def _migrate_db():
-    """Migrate existing database to multi-tenant schema."""
+    """Migrate existing SQLite database to multi-tenant schema.
+    Only runs for SQLite — PostgreSQL gets the correct schema from create_all."""
+    if not DATABASE_URL.startswith("sqlite"):
+        return
+
     db_path = DATA_DIR / "watchwise.db"
     if not db_path.exists():
         return

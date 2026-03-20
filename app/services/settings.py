@@ -1,4 +1,5 @@
 import json
+import os
 from app.config import SETTINGS_FILE
 
 DEFAULT_SETTINGS = {
@@ -10,12 +11,21 @@ DEFAULT_SETTINGS = {
 
 
 def load_settings() -> dict:
+    # In production, use env vars
+    env_settings = {}
+    for key in DEFAULT_SETTINGS:
+        env_val = os.environ.get(key.upper())
+        if env_val:
+            env_settings[key] = env_val
+
+    if env_settings:
+        return {**DEFAULT_SETTINGS, **env_settings}
+
+    # Local dev: read from JSON file
     if SETTINGS_FILE.exists():
         with open(SETTINGS_FILE, "r") as f:
             saved = json.load(f)
-        # Merge with defaults for any new keys
-        merged = {**DEFAULT_SETTINGS, **saved}
-        return merged
+        return {**DEFAULT_SETTINGS, **saved}
     return DEFAULT_SETTINGS.copy()
 
 
