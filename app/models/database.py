@@ -212,9 +212,22 @@ def init_db():
     _migrate_db()
     # Import models so create_all knows about them
     from app.models import user, media, feedback  # noqa: F401
+
+    # Add missing columns to existing tables (PostgreSQL + SQLite)
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    existing_tables = inspector.get_table_names()
+
+    if "users" in existing_tables:
+        user_cols = [c["name"] for c in inspector.get_columns("users")]
+        if "is_admin" not in user_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0"))
+
+    # Create any new tables
     Base.metadata.create_all(bind=engine)
 
-    # Ensure first user is admin (works for both SQLite and PostgreSQL)
+    # Ensure first user is admin
     from sqlalchemy.orm import Session as _Session
     db = _Session(bind=engine)
     try:
