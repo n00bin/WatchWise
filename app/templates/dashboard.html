@@ -5,13 +5,62 @@
     <h1 class="page-title">Dashboard</h1>
 </div>
 
-{% if not has_api_key %}
-<div class="setup-banner">
-    <h3>Welcome to WatchWise!</h3>
-    <p>To get started, you need a free TMDB API key. It takes 30 seconds to sign up.</p>
-    <a href="/settings" class="btn btn-primary">Set Up API Key</a>
+<!-- Welcome screen for new users -->
+<div id="welcomeScreen" style="display:none">
+    <div style="text-align:center;padding:40px 20px;max-width:600px;margin:0 auto">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="margin-bottom:20px">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+            <line x1="7" y1="2" x2="7" y2="22"></line>
+            <line x1="17" y1="2" x2="17" y2="22"></line>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+        </svg>
+        <h2 style="font-size:1.5rem;font-weight:700;color:var(--text);margin-bottom:8px">Welcome to WatchWise!</h2>
+        <p style="color:var(--text-muted);font-size:0.9rem;line-height:1.6;margin-bottom:32px">
+            Track what you watch, rate it, and discover new favorites powered by the community.
+        </p>
+
+        <div style="text-align:left;max-width:450px;margin:0 auto">
+            <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:24px">
+                <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;color:white;font-size:0.9rem">1</div>
+                <div>
+                    <div style="font-weight:600;color:var(--text);margin-bottom:2px">Add what you've watched</div>
+                    <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.5">Go to Movies, TV Shows, or Anime and search for titles. Add them as "Watched" or to your watchlist.</div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:24px">
+                <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;color:white;font-size:0.9rem">2</div>
+                <div>
+                    <div style="font-weight:600;color:var(--text);margin-bottom:2px">Rate everything</div>
+                    <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.5">Tap any title to rate it 1-5 stars. Your ratings power recommendations for you and the whole community.</div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:24px">
+                <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;color:white;font-size:0.9rem">3</div>
+                <div>
+                    <div style="font-weight:600;color:var(--text);margin-bottom:2px">Get personalized recommendations</div>
+                    <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.5">Once you've rated 5+ titles, check "For You" for smart picks based on your taste and what fans like you enjoyed.</div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:32px">
+                <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;color:white;font-size:0.9rem">4</div>
+                <div>
+                    <div style="font-weight:600;color:var(--text);margin-bottom:2px">Track upcoming episodes</div>
+                    <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.5">Set TV shows or anime to "Watching" and the Calendar will show you when new episodes air.</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="dismissWelcome()" style="padding:12px 32px;font-size:0.95rem">
+            Get Started
+        </button>
+    </div>
 </div>
-{% endif %}
+
+<!-- Regular dashboard content -->
+<div id="dashboardContent">
 
 <div class="rating-nudge" id="ratingNudge" style="display:none;background:linear-gradient(135deg, rgba(245,158,11,0.12), rgba(124,58,237,0.08));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:16px 20px;margin-bottom:20px;align-items:center;gap:14px">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" style="flex-shrink:0">
@@ -85,6 +134,8 @@
         <div class="loading-center"><div class="spinner"></div></div>
     </div>
 </div>
+
+</div><!-- end dashboardContent -->
 {% endblock %}
 
 {% block scripts %}
@@ -111,9 +162,23 @@ function renderGenreChart(elementId, genreCounts) {
         : '<p class="search-hint">No data yet</p>';
 }
 
+function dismissWelcome() {
+    document.getElementById('welcomeScreen').style.display = 'none';
+    document.getElementById('dashboardContent').style.display = '';
+}
+
 async function loadPageData() {
     try {
         const stats = await api('/api/stats');
+
+        // Show welcome screen if user has nothing tracked
+        const totalItems = (stats.total_movies || 0) + (stats.total_tvshows || 0) + (stats.total_anime || 0);
+        if (totalItems === 0) {
+            document.getElementById('welcomeScreen').style.display = '';
+            document.getElementById('dashboardContent').style.display = 'none';
+            return;
+        }
+
         renderStats(stats);
     } catch (err) {
         console.error('Failed to load stats:', err);
