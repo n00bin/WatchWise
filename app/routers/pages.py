@@ -18,6 +18,11 @@ async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "page": "login"})
 
 
+@router.get("/privacy")
+async def privacy_page(request: Request):
+    return templates.TemplateResponse("privacy.html", {"request": request, "page": "privacy"})
+
+
 @router.get("/")
 async def dashboard(request: Request):
     has_key = bool(get_tmdb_key())
