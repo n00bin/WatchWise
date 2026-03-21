@@ -13,6 +13,17 @@
 </div>
 {% endif %}
 
+<div class="rating-nudge" id="ratingNudge" style="display:none;background:linear-gradient(135deg, rgba(245,158,11,0.12), rgba(124,58,237,0.08));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:none;align-items:center;gap:14px">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" style="flex-shrink:0">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+    </svg>
+    <div style="flex:1">
+        <div style="font-weight:600;font-size:0.9rem;color:var(--text);margin-bottom:2px" id="nudgeTitle">Rate your watched titles!</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5" id="nudgeText">You have unwatched titles without ratings. Rating them improves recommendations for you and the whole community.</div>
+    </div>
+    <a href="/movies" class="btn btn-primary btn-sm" style="white-space:nowrap">Rate Now</a>
+</div>
+
 <div class="stats-row" id="statsRow">
     <div class="stat-card purple">
         <span class="stat-label">Movies Watched</span>
@@ -143,6 +154,15 @@ function renderStats(s) {
             `;
         }).join('')
         : '<p class="search-hint" style="width:100%;text-align:center">No watch history yet</p>';
+
+    // Rating nudge
+    const unrated = (s.unrated_movies || 0) + (s.unrated_tvshows || 0) + (s.unrated_anime || 0);
+    const nudge = document.getElementById('ratingNudge');
+    if (unrated > 0) {
+        nudge.style.display = 'flex';
+        document.getElementById('nudgeTitle').textContent = `You have ${unrated} unrated title${unrated > 1 ? 's' : ''}!`;
+        document.getElementById('nudgeText').textContent = `Rating them improves recommendations for you and the whole WatchWise community. Every rating helps.`;
+    }
 
     // Top genres
     const topGenres = s.top_genres;

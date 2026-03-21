@@ -533,6 +533,9 @@ async def get_stats(user: User = Depends(get_current_user), db: Session = Depend
         "movie_statuses": movie_statuses,
         "tv_statuses": tv_statuses,
         "anime_statuses": anime_statuses,
+        "unrated_movies": len(watched_movies) - len(rated_movies),
+        "unrated_tvshows": len(watched_shows) - len(rated_shows),
+        "unrated_anime": len(completed_anime) - len(rated_anime),
     }
 
 

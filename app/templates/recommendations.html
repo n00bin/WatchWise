@@ -24,6 +24,19 @@
     </div>
 </div>
 
+<div class="community-banner" style="background:linear-gradient(135deg, rgba(124,58,237,0.15), rgba(6,182,212,0.1));border:1px solid rgba(124,58,237,0.25);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" style="flex-shrink:0">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </svg>
+    <div>
+        <div style="font-weight:600;font-size:0.9rem;color:var(--text);margin-bottom:2px">Community-Powered Recommendations</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5">The more you rate, the better everyone's recommendations get. Your ratings help WatchWise learn what real fans love.</div>
+    </div>
+</div>
+
 <div class="tab-bar" id="recTabs">
     <button class="tab-btn active" data-type="movies" onclick="showRecType('movies')">Movies</button>
     <button class="tab-btn" data-type="tvshows" onclick="showRecType('tvshows')">TV Shows</button>
@@ -182,7 +195,7 @@ function renderRecs(recs) {
                 <h3>${currentPage > 1 ? 'No more recommendations' : 'No recommendations yet'}</h3>
                 <p>${currentPage > 1
                     ? 'You\'ve seen all the recommendations. Try Surprise Me for a fresh mix!'
-                    : 'Watch and rate some ' + mediaLabel + ' first. The more you rate (especially 4-5 stars), the better recommendations you\'ll get!'}</p>
+                    : 'Watch and rate some ' + mediaLabel + ' first. Your ratings power the community recommendation engine — the more everyone rates, the better picks we all get!'}</p>
                 ${currentPage > 1 ? '<button class="btn btn-secondary" onclick="goToPage(1)">Back to Page 1</button>' : ''}
             </div>
         `;
@@ -368,7 +381,7 @@ async function doRecAction(status) {
         }
         let msg = `Added "${title}" as ${label}!`;
         if ((status === 'watched') && selectedRating > 0) {
-            msg += ` Rated ${selectedRating}/5`;
+            msg += ` Rated ${selectedRating}/5 — thanks for helping the community!`;
         }
         showToast(msg, 'success');
         loadPageData();
