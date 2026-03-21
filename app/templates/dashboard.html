@@ -13,13 +13,13 @@
 </div>
 {% endif %}
 
-<div class="rating-nudge" id="ratingNudge" style="display:none;background:linear-gradient(135deg, rgba(245,158,11,0.12), rgba(124,58,237,0.08));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:none;align-items:center;gap:14px">
+<div class="rating-nudge" id="ratingNudge" style="display:none;background:linear-gradient(135deg, rgba(245,158,11,0.12), rgba(124,58,237,0.08));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:16px 20px;margin-bottom:20px;align-items:center;gap:14px">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" style="flex-shrink:0">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
     </svg>
     <div style="flex:1">
         <div style="font-weight:600;font-size:0.9rem;color:var(--text);margin-bottom:2px" id="nudgeTitle">Rate your watched titles!</div>
-        <div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5" id="nudgeText">You have unwatched titles without ratings. Rating them improves recommendations for you and the whole community.</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5" id="nudgeText"></div>
     </div>
     <a href="/movies" class="btn btn-primary btn-sm" style="white-space:nowrap">Rate Now</a>
 </div>
@@ -36,9 +36,9 @@
         <span class="stat-sub" id="statShowsTotal"></span>
     </div>
     <div class="stat-card amber">
-        <span class="stat-label">Avg Rating</span>
-        <span class="stat-value" id="statAvgRating">-</span>
-        <span class="stat-sub" id="statAvgSub"></span>
+        <span class="stat-label">Anime Completed</span>
+        <span class="stat-value" id="statAnime">-</span>
+        <span class="stat-sub" id="statAnimeTotal"></span>
     </div>
     <div class="stat-card green">
         <span class="stat-label">Total Watch Time</span>
@@ -49,7 +49,7 @@
 
 <div class="chart-section">
     <div class="chart-card">
-        <h3>Overall Genre Breakdown</h3>
+        <h3>Genre Breakdown</h3>
         <div class="chart-bar-group" id="genreChart">
             <div class="loading-center"><div class="spinner"></div></div>
         </div>
@@ -64,38 +64,14 @@
 
 <div class="chart-section">
     <div class="chart-card">
-        <h3>Movie Genres</h3>
-        <div class="chart-bar-group" id="movieGenreChart">
-            <div class="loading-center"><div class="spinner"></div></div>
-        </div>
-    </div>
-    <div class="chart-card">
-        <h3>TV Show Genres</h3>
-        <div class="chart-bar-group" id="tvGenreChart">
-            <div class="loading-center"><div class="spinner"></div></div>
-        </div>
-    </div>
-</div>
-
-<div class="chart-section">
-    <div class="chart-card">
-        <h3>Anime Genres</h3>
-        <div class="chart-bar-group" id="animeGenreChart">
+        <h3>Monthly Activity</h3>
+        <div class="monthly-chart" id="monthlyChart">
             <div class="loading-center"><div class="spinner"></div></div>
         </div>
     </div>
     <div class="chart-card">
         <h3>Top Genres (by your rating)</h3>
         <div class="top-genres-list" id="topGenres">
-            <div class="loading-center"><div class="spinner"></div></div>
-        </div>
-    </div>
-</div>
-
-<div class="chart-section">
-    <div class="chart-card">
-        <h3>Monthly Activity</h3>
-        <div class="monthly-chart" id="monthlyChart">
             <div class="loading-center"><div class="spinner"></div></div>
         </div>
     </div>
@@ -151,7 +127,7 @@ async function loadPageData() {
     }
 }
 
-function renderTrendingRow(items, type) {
+function renderTrendingRow(items) {
     if (!items || items.length === 0) return '<p class="search-hint">No data yet — be the first to rate!</p>';
 
     return `<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px">
@@ -193,46 +169,38 @@ function renderTrending(data) {
     }
 
     let html = '';
-
     if (hasMovies) {
         html += `<div style="margin-bottom:24px">
             <h3 style="font-size:0.9rem;color:var(--text-muted);margin-bottom:12px">Movies</h3>
-            ${renderTrendingRow(data.movies, 'movie')}
+            ${renderTrendingRow(data.movies)}
         </div>`;
     }
-
     if (hasTv) {
         html += `<div style="margin-bottom:24px">
             <h3 style="font-size:0.9rem;color:var(--text-muted);margin-bottom:12px">TV Shows</h3>
-            ${renderTrendingRow(data.tvshows, 'tv')}
+            ${renderTrendingRow(data.tvshows)}
         </div>`;
     }
-
     if (hasAnime) {
         html += `<div style="margin-bottom:24px">
             <h3 style="font-size:0.9rem;color:var(--text-muted);margin-bottom:12px">Anime</h3>
-            ${renderTrendingRow(data.anime, 'anime')}
+            ${renderTrendingRow(data.anime)}
         </div>`;
     }
-
     container.innerHTML = html;
 }
 
 function renderStats(s) {
-    // Overview stats
+    // Stat cards
     document.getElementById('statMovies').textContent = s.watched_movies;
     document.getElementById('statMoviesTotal').textContent = `${s.total_movies} total tracked`;
     document.getElementById('statShows').textContent = s.watched_tvshows;
     document.getElementById('statShowsTotal').textContent = `${s.total_tvshows} total tracked`;
-
-    const avgAll = (s.avg_movie_rating && s.avg_tvshow_rating)
-        ? ((s.avg_movie_rating + s.avg_tvshow_rating) / 2).toFixed(1)
-        : (s.avg_movie_rating || s.avg_tvshow_rating || 0).toFixed(1);
-    document.getElementById('statAvgRating').textContent = `${avgAll}/5`;
-    document.getElementById('statAvgSub').textContent = `Movies ${s.avg_movie_rating}/5 | TV ${s.avg_tvshow_rating}/5`;
+    document.getElementById('statAnime').textContent = s.completed_anime;
+    document.getElementById('statAnimeTotal').textContent = `${s.total_anime} total tracked`;
 
     document.getElementById('statHours').textContent = `${s.total_hours}h`;
-    document.getElementById('statHoursSub').textContent = `${s.movie_hours}h movies | ${s.tv_hours}h TV`;
+    document.getElementById('statHoursSub').textContent = `${s.movie_hours}h movies | ${s.tv_hours}h TV | ${s.anime_hours}h anime`;
 
     // Genre chart
     renderGenreChart('genreChart', s.genre_counts || {});
@@ -255,7 +223,7 @@ function renderStats(s) {
     const maxMonth = monthly.length ? Math.max(...monthly.map(m => m[1])) : 1;
     document.getElementById('monthlyChart').innerHTML = monthly.length
         ? monthly.slice(-12).map(([month, count]) => {
-            const label = month.substring(2); // "24-01" from "2024-01"
+            const label = month.substring(2);
             return `
                 <div class="monthly-bar">
                     <div class="monthly-bar-count">${count}</div>
@@ -265,11 +233,6 @@ function renderStats(s) {
             `;
         }).join('')
         : '<p class="search-hint" style="width:100%;text-align:center">No watch history yet</p>';
-
-    // Per-type genre charts
-    renderGenreChart('movieGenreChart', s.movie_genre_counts || {});
-    renderGenreChart('tvGenreChart', s.tv_genre_counts || {});
-    renderGenreChart('animeGenreChart', s.anime_genre_counts || {});
 
     // Rating nudge
     const unrated = (s.unrated_movies || 0) + (s.unrated_tvshows || 0) + (s.unrated_anime || 0);
