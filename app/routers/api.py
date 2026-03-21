@@ -19,15 +19,19 @@ router = APIRouter(prefix="/api")
 # ─── Search ──────────────────────────────────────────────────────────
 
 @router.get("/search")
-async def search(q: str = Query(...), media_type: str = Query("movie")):
+async def search(q: str = Query(...), media_type: str = Query("movie"), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         if media_type == "anime":
+            tracked_ids = {a.mal_id for a in db.query(Anime).filter(Anime.user_id == user.id).all()}
             data = await jikan.search_anime(q)
             results = []
             for item in data.get("data", [])[:15]:
+                mal_id = item["mal_id"]
+                if mal_id in tracked_ids:
+                    continue
                 images = item.get("images", {}).get("jpg", {})
                 results.append({
-                    "mal_id": item["mal_id"],
+                    "mal_id": mal_id,
                     "title": item.get("title", ""),
                     "title_english": item.get("title_english", ""),
                     "overview": (item.get("synopsis") or "")[:200],
@@ -41,14 +45,19 @@ async def search(q: str = Query(...), media_type: str = Query("movie")):
             return results
 
         if media_type == "movie":
+            tracked_ids = {m.tmdb_id for m in db.query(Movie).filter(Movie.user_id == user.id).all()}
             data = await tmdb.search_movies(q)
         else:
+            tracked_ids = {s.tmdb_id for s in db.query(TVShow).filter(TVShow.user_id == user.id).all()}
             data = await tmdb.search_tv(q)
 
         results = []
         for item in data.get("results", [])[:15]:
+            tmdb_id = item["id"]
+            if tmdb_id in tracked_ids:
+                continue
             results.append({
-                "tmdb_id": item["id"],
+                "tmdb_id": tmdb_id,
                 "title": item.get("title") or item.get("name", ""),
                 "overview": item.get("overview", "")[:200],
                 "poster_path": tmdb.poster_url(item.get("poster_path", ""), "w185"),
