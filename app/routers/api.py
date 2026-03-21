@@ -449,11 +449,26 @@ async def get_stats(user: User = Depends(get_current_user), db: Session = Depend
     rated_shows = [s for s in watched_shows if s.user_rating]
     rated_anime = [a for a in completed_anime if a.user_rating]
 
+    # Genre breakdowns — overall + per media type
     genre_counts = {}
     genre_ratings = {}
-    for item in watched_movies + watched_shows:
+    movie_genre_counts = {}
+    tv_genre_counts = {}
+    anime_genre_counts = {}
+
+    for item in watched_movies:
         for g in item.genres:
             genre_counts[g.name] = genre_counts.get(g.name, 0) + 1
+            movie_genre_counts[g.name] = movie_genre_counts.get(g.name, 0) + 1
+            if item.user_rating:
+                if g.name not in genre_ratings:
+                    genre_ratings[g.name] = []
+                genre_ratings[g.name].append(item.user_rating)
+
+    for item in watched_shows:
+        for g in item.genres:
+            genre_counts[g.name] = genre_counts.get(g.name, 0) + 1
+            tv_genre_counts[g.name] = tv_genre_counts.get(g.name, 0) + 1
             if item.user_rating:
                 if g.name not in genre_ratings:
                     genre_ratings[g.name] = []
@@ -466,6 +481,7 @@ async def get_stats(user: User = Depends(get_current_user), db: Session = Depend
             genres = []
         for g in genres:
             genre_counts[g] = genre_counts.get(g, 0) + 1
+            anime_genre_counts[g] = anime_genre_counts.get(g, 0) + 1
             if a.user_rating:
                 if g not in genre_ratings:
                     genre_ratings[g] = []
@@ -531,6 +547,9 @@ async def get_stats(user: User = Depends(get_current_user), db: Session = Depend
             sum(a.user_rating for a in rated_anime) / len(rated_anime), 1
         ) if rated_anime else 0,
         "genre_counts": dict(sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)),
+        "movie_genre_counts": dict(sorted(movie_genre_counts.items(), key=lambda x: x[1], reverse=True)),
+        "tv_genre_counts": dict(sorted(tv_genre_counts.items(), key=lambda x: x[1], reverse=True)),
+        "anime_genre_counts": dict(sorted(anime_genre_counts.items(), key=lambda x: x[1], reverse=True)),
         "genre_avg_ratings": genre_avg_ratings,
         "rating_distribution": rating_dist,
         "monthly_watched": dict(sorted(monthly.items())),

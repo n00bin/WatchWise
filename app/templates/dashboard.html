@@ -49,7 +49,7 @@
 
 <div class="chart-section">
     <div class="chart-card">
-        <h3>Genre Breakdown</h3>
+        <h3>Overall Genre Breakdown</h3>
         <div class="chart-bar-group" id="genreChart">
             <div class="loading-center"><div class="spinner"></div></div>
         </div>
@@ -64,14 +64,38 @@
 
 <div class="chart-section">
     <div class="chart-card">
-        <h3>Monthly Activity</h3>
-        <div class="monthly-chart" id="monthlyChart">
+        <h3>Movie Genres</h3>
+        <div class="chart-bar-group" id="movieGenreChart">
+            <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+    </div>
+    <div class="chart-card">
+        <h3>TV Show Genres</h3>
+        <div class="chart-bar-group" id="tvGenreChart">
+            <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="chart-section">
+    <div class="chart-card">
+        <h3>Anime Genres</h3>
+        <div class="chart-bar-group" id="animeGenreChart">
             <div class="loading-center"><div class="spinner"></div></div>
         </div>
     </div>
     <div class="chart-card">
         <h3>Top Genres (by your rating)</h3>
         <div class="top-genres-list" id="topGenres">
+            <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="chart-section">
+    <div class="chart-card">
+        <h3>Monthly Activity</h3>
+        <div class="monthly-chart" id="monthlyChart">
             <div class="loading-center"><div class="spinner"></div></div>
         </div>
     </div>
@@ -85,6 +109,22 @@ const GENRE_COLORS = [
     '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#6366f1',
     '#84cc16', '#e879f9', '#22d3ee', '#a3e635', '#fb923c',
 ];
+
+function renderGenreChart(elementId, genreCounts) {
+    const genres = Object.entries(genreCounts).slice(0, 10);
+    const maxGenre = genres.length ? Math.max(...genres.map(g => g[1])) : 1;
+    document.getElementById(elementId).innerHTML = genres.length
+        ? genres.map(([name, count], i) => `
+            <div class="chart-bar-item">
+                <span class="chart-bar-label">${name}</span>
+                <div class="chart-bar-track">
+                    <div class="chart-bar-fill" style="width:${(count/maxGenre)*100}%;background:${GENRE_COLORS[i % GENRE_COLORS.length]}"></div>
+                </div>
+                <span class="chart-bar-value">${count}</span>
+            </div>
+        `).join('')
+        : '<p class="search-hint">No data yet</p>';
+}
 
 async function loadPageData() {
     try {
@@ -112,19 +152,7 @@ function renderStats(s) {
     document.getElementById('statHoursSub').textContent = `${s.movie_hours}h movies | ${s.tv_hours}h TV`;
 
     // Genre chart
-    const genres = Object.entries(s.genre_counts).slice(0, 10);
-    const maxGenre = genres.length ? Math.max(...genres.map(g => g[1])) : 1;
-    document.getElementById('genreChart').innerHTML = genres.length
-        ? genres.map(([name, count], i) => `
-            <div class="chart-bar-item">
-                <span class="chart-bar-label">${name}</span>
-                <div class="chart-bar-track">
-                    <div class="chart-bar-fill" style="width:${(count/maxGenre)*100}%;background:${GENRE_COLORS[i % GENRE_COLORS.length]}"></div>
-                </div>
-                <span class="chart-bar-value">${count}</span>
-            </div>
-        `).join('')
-        : '<p class="search-hint">No data yet. Start watching!</p>';
+    renderGenreChart('genreChart', s.genre_counts || {});
 
     // Rating distribution
     const dist = s.rating_distribution;
@@ -154,6 +182,11 @@ function renderStats(s) {
             `;
         }).join('')
         : '<p class="search-hint" style="width:100%;text-align:center">No watch history yet</p>';
+
+    // Per-type genre charts
+    renderGenreChart('movieGenreChart', s.movie_genre_counts || {});
+    renderGenreChart('tvGenreChart', s.tv_genre_counts || {});
+    renderGenreChart('animeGenreChart', s.anime_genre_counts || {});
 
     // Rating nudge
     const unrated = (s.unrated_movies || 0) + (s.unrated_tvshows || 0) + (s.unrated_anime || 0);
