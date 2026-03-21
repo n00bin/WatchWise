@@ -13,6 +13,15 @@ def _has_token(request: Request) -> bool:
     return bool(request.cookies.get("access_token"))
 
 
+@router.get("/u/{username}")
+async def profile_page(request: Request, username: str):
+    return templates.TemplateResponse("profile.html", {
+        "request": request,
+        "page": "profile",
+        "username": username,
+    })
+
+
 @router.get("/login")
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "page": "login"})

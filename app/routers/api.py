@@ -438,6 +438,79 @@ async def delete_anime(anime_id: int, user: User = Depends(get_current_user), db
     return {"status": "ok"}
 
 
+# ─── Public Profile ──────────────────────────────────────────────────
+
+@router.get("/profile/{username}")
+async def get_public_profile(username: str, db: Session = Depends(get_db)):
+    """Public profile — no auth required."""
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    movies = db.query(Movie).filter(Movie.user_id == user.id).all()
+    tvshows = db.query(TVShow).filter(TVShow.user_id == user.id).all()
+    anime_list = db.query(Anime).filter(Anime.user_id == user.id).all()
+
+    watched_movies = [m for m in movies if m.status == "watched"]
+    watched_shows = [s for s in tvshows if s.status == "watched"]
+    completed_anime = [a for a in anime_list if a.status == "completed"]
+
+    # Top rated (5 stars first, then 4)
+    top_movies = sorted(
+        [m for m in watched_movies if m.user_rating and m.user_rating >= 4],
+        key=lambda x: x.user_rating, reverse=True
+    )[:8]
+    top_shows = sorted(
+        [s for s in watched_shows if s.user_rating and s.user_rating >= 4],
+        key=lambda x: x.user_rating, reverse=True
+    )[:8]
+    top_anime = sorted(
+        [a for a in completed_anime if a.user_rating and a.user_rating >= 4],
+        key=lambda x: x.user_rating, reverse=True
+    )[:8]
+
+    # Genre counts
+    genre_counts = {}
+    for item in watched_movies + watched_shows:
+        for g in item.genres:
+            genre_counts[g.name] = genre_counts.get(g.name, 0) + 1
+    for a in completed_anime:
+        try:
+            genres = json.loads(a.genres_json) if a.genres_json else []
+        except (json.JSONDecodeError, TypeError):
+            genres = []
+        for g in genres:
+            genre_counts[g] = genre_counts.get(g, 0) + 1
+
+    top_genres = sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    rated_all = [m for m in watched_movies if m.user_rating] + [s for s in watched_shows if s.user_rating] + [a for a in completed_anime if a.user_rating]
+    avg_rating = round(sum(x.user_rating for x in rated_all) / len(rated_all), 1) if rated_all else 0
+
+    return {
+        "username": user.username,
+        "joined": user.created_at.isoformat()[:10] if user.created_at else "",
+        "watched_movies": len(watched_movies),
+        "watched_tvshows": len(watched_shows),
+        "completed_anime": len(completed_anime),
+        "total_rated": len(rated_all),
+        "avg_rating": avg_rating,
+        "top_genres": top_genres,
+        "top_movies": [
+            {"title": m.title, "poster_path": tmdb.poster_url(m.poster_path, "w185"), "rating": m.user_rating, "year": (m.release_date or "")[:4]}
+            for m in top_movies
+        ],
+        "top_tvshows": [
+            {"title": s.title, "poster_path": tmdb.poster_url(s.poster_path, "w185"), "rating": s.user_rating, "year": (s.first_air_date or "")[:4]}
+            for s in top_shows
+        ],
+        "top_anime": [
+            {"title": a.title_english or a.title, "poster_url": a.poster_url, "rating": a.user_rating}
+            for a in top_anime
+        ],
+    }
+
+
 # ─── Dashboard Stats ─────────────────────────────────────────────────
 
 @router.get("/stats")
