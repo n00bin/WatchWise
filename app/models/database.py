@@ -213,3 +213,17 @@ def init_db():
     # Import models so create_all knows about them
     from app.models import user, media, feedback  # noqa: F401
     Base.metadata.create_all(bind=engine)
+
+    # Ensure first user is admin (works for both SQLite and PostgreSQL)
+    from sqlalchemy.orm import Session as _Session
+    db = _Session(bind=engine)
+    try:
+        from app.models.user import User
+        first_user = db.query(User).filter(User.id == 1).first()
+        if first_user and not first_user.is_admin:
+            first_user.is_admin = 1
+            db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()

@@ -59,10 +59,16 @@
 let allFeedback = [];
 let currentFilter = '';
 let submitType = 'feature';
+let isAdmin = false;
 
 async function loadPageData() {
     try {
-        allFeedback = await api('/api/feedback');
+        const [feedback, me] = await Promise.all([
+            api('/api/feedback'),
+            api('/api/auth/me'),
+        ]);
+        allFeedback = feedback;
+        isAdmin = me.is_admin || false;
         renderFeedback();
     } catch (err) {
         document.getElementById('feedbackList').innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px">${err.message}</p>`;
@@ -117,6 +123,17 @@ function renderFeedback() {
                     </div>
                     <div style="font-weight:600;font-size:0.9rem;color:var(--text);margin-bottom:4px">${escapeHtml(f.title)}</div>
                     ${f.description ? `<div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5">${escapeHtml(f.description)}</div>` : ''}
+                    ${isAdmin ? `
+                        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                            <select onchange="updateFeedbackStatus(${f.id}, this.value)" style="font-size:0.75rem;padding:3px 8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;font-family:inherit">
+                                <option value="open" ${f.status==='open'?'selected':''}>Open</option>
+                                <option value="in_progress" ${f.status==='in_progress'?'selected':''}>In Progress</option>
+                                <option value="done" ${f.status==='done'?'selected':''}>Done</option>
+                                <option value="closed" ${f.status==='closed'?'selected':''}>Closed</option>
+                            </select>
+                            <button onclick="deleteFeedback(${f.id})" style="font-size:0.75rem;padding:3px 8px;background:none;color:var(--danger);border:1px solid rgba(239,68,68,0.3);border-radius:4px;cursor:pointer;font-family:inherit">Delete</button>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
         `;
@@ -175,6 +192,33 @@ async function submitFeedback() {
         showToast('Feedback submitted! Thanks for helping improve WatchWise.', 'success');
         closeSubmitModal();
         loadPageData();
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+async function updateFeedbackStatus(feedbackId, status) {
+    try {
+        await api(`/api/feedback/${feedbackId}/status`, {
+            method: 'PUT',
+            body: { status },
+        });
+        const item = allFeedback.find(f => f.id === feedbackId);
+        if (item) item.status = status;
+        renderFeedback();
+        showToast(`Status updated to ${status}`, 'success');
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+async function deleteFeedback(feedbackId) {
+    if (!confirm('Delete this feedback?')) return;
+    try {
+        await api(`/api/feedback/${feedbackId}`, { method: 'DELETE' });
+        allFeedback = allFeedback.filter(f => f.id !== feedbackId);
+        renderFeedback();
+        showToast('Deleted', 'success');
     } catch (err) {
         showToast(`Error: ${err.message}`, 'error');
     }

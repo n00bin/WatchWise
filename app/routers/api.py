@@ -12,7 +12,7 @@ from app.models.feedback import Feedback, FeedbackVote
 from app.models.user import User
 from app.services import tmdb, jikan
 from app.services import recommendations as rec_service
-from app.services.auth import get_current_user
+from app.services.auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/api")
 
@@ -981,6 +981,60 @@ async def toggle_vote(feedback_id: int, user: User = Depends(get_current_user), 
         db.add(vote)
         db.commit()
         return {"status": "ok", "voted": True}
+
+
+# ─── Admin ───────────────────────────────────────────────────────────
+
+@router.put("/feedback/{feedback_id}/status")
+async def update_feedback_status(feedback_id: int, data: dict, user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    item = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+
+    status = data.get("status", "")
+    if status not in ("open", "in_progress", "done", "closed"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    item.status = status
+    db.commit()
+    return {"status": "ok"}
+
+
+@router.delete("/feedback/{feedback_id}")
+async def delete_feedback(feedback_id: int, user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    item = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    db.delete(item)
+    db.commit()
+    return {"status": "ok"}
+
+
+@router.get("/admin/users")
+async def get_users(user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from sqlalchemy import func
+
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    results = []
+    for u in users:
+        movie_count = db.query(Movie).filter(Movie.user_id == u.id).count()
+        tv_count = db.query(TVShow).filter(TVShow.user_id == u.id).count()
+        anime_count = db.query(Anime).filter(Anime.user_id == u.id).count()
+        rated_count = (
+            db.query(Movie).filter(Movie.user_id == u.id, Movie.user_rating.isnot(None)).count() +
+            db.query(TVShow).filter(TVShow.user_id == u.id, TVShow.user_rating.isnot(None)).count() +
+            db.query(Anime).filter(Anime.user_id == u.id, Anime.user_rating.isnot(None)).count()
+        )
+        results.append({
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "is_admin": bool(u.is_admin),
+            "created_at": u.created_at.isoformat() if u.created_at else "",
+            "total_items": movie_count + tv_count + anime_count,
+            "rated_items": rated_count,
+        })
+    return results
 
 
 # ─── Import ──────────────────────────────────────────────────────────
