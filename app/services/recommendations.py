@@ -596,6 +596,20 @@ async def get_anime_recommendations(db: Session, user_id: int, limit: int = 60, 
         if not entry:
             continue
 
+        # Fetch full details to get English title if missing
+        title_english = entry.get("title_english", "")
+        if not title_english:
+            try:
+                full = await jikan.get_anime_details(mal_id)
+                title_english = full.get("title_english", "") or ""
+                # Also grab better images/synopsis if available
+                if full.get("images"):
+                    entry["images"] = full["images"]
+                if full.get("synopsis"):
+                    entry["synopsis"] = full["synopsis"]
+            except Exception:
+                pass
+
         images = entry.get("images", {}).get("jpg", {})
         poster = images.get("image_url", "")
 
@@ -613,7 +627,7 @@ async def get_anime_recommendations(db: Session, user_id: int, limit: int = 60, 
         scored.append({
             "mal_id": mal_id,
             "title": entry.get("title", ""),
-            "title_english": entry.get("title_english", ""),
+            "title_english": title_english,
             "synopsis": (entry.get("synopsis") or entry.get("title", ""))[:200],
             "poster_url": poster,
             "mal_score": entry.get("score", 0) or 0,
