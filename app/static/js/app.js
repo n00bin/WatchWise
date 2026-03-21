@@ -353,6 +353,12 @@ function escapeHtml(text) {
 
 function renderMediaCard(item, type) {
     const year = (item.release_date || item.first_air_date || '').substring(0, 4);
+    const airing = item.airing_status || '';
+    const isEnded = airing === 'Ended' || airing === 'Canceled' || airing === 'Finished Airing';
+    const isAiring = airing === 'Returning Series' || airing === 'Currently Airing' || airing === 'In Production';
+    const airingBadge = (type === 'tv' || type === 'anime') && airing
+        ? `<div style="position:absolute;top:6px;right:6px;font-size:0.65rem;font-weight:600;padding:2px 6px;border-radius:4px;color:white;background:${isAiring ? '#10b981' : isEnded ? '#6b7280' : '#f59e0b'}">${isEnded ? 'Ended' : isAiring ? 'Airing' : airing}</div>`
+        : '';
     return `
         <div class="media-card" onclick='openDetailModal(${JSON.stringify(item).replace(/'/g, "&#39;")}, "${type}")'>
             <div class="poster-wrap">
@@ -360,6 +366,7 @@ function renderMediaCard(item, type) {
                     ? `<img src="${item.poster_path}" alt="${escapeHtml(item.title)}" loading="lazy">`
                     : '<div class="no-poster">No Poster</div>'}
                 ${item.user_rating ? `<div class="card-badge">&#9733; ${item.user_rating} &mdash; ${RATING_LABELS[item.user_rating]}</div>` : ''}
+                ${airingBadge}
                 <div class="status-badge ${item.status}">${item.status}</div>
             </div>
             <div class="card-info">

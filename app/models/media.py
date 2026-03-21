@@ -76,6 +76,7 @@ class TVShow(Base):
     number_of_episodes = Column(Integer, default=0)
     episode_runtime = Column(Integer, default=0)
     tmdb_rating = Column(Float, default=0.0)
+    airing_status = Column(String(30), default="")  # Returning Series, Ended, Canceled
 
     # User data
     status = Column(String(20), default="watchlist")

@@ -218,6 +218,12 @@ def init_db():
     inspector = inspect(engine)
     existing_tables = inspector.get_table_names()
 
+    if "tvshows" in existing_tables:
+        tv_cols = [c["name"] for c in inspector.get_columns("tvshows")]
+        if "airing_status" not in tv_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE tvshows ADD COLUMN airing_status VARCHAR(30) DEFAULT ''"))
+
     if "users" in existing_tables:
         user_cols = [c["name"] for c in inspector.get_columns("users")]
         if "is_admin" not in user_cols:

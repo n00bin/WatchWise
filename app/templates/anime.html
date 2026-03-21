@@ -92,6 +92,7 @@ function renderAnimeCard(a) {
                     ? `<img src="${a.poster_url}" alt="${escapeHtml(displayTitle)}" loading="lazy">`
                     : '<div class="no-poster">No Poster</div>'}
                 ${a.user_rating ? `<div class="card-badge">&#9733; ${a.user_rating} &mdash; ${RATING_LABELS[a.user_rating]}</div>` : ''}
+                ${a.airing_status ? `<div style="position:absolute;top:6px;right:6px;font-size:0.65rem;font-weight:600;padding:2px 6px;border-radius:4px;color:white;background:${a.airing_status === 'Currently Airing' ? '#10b981' : a.airing_status === 'Finished Airing' ? '#6b7280' : '#f59e0b'}">${a.airing_status === 'Currently Airing' ? 'Airing' : a.airing_status === 'Finished Airing' ? 'Ended' : a.airing_status}</div>` : ''}
                 <div class="status-badge ${statusClass}">${statusLabel}</div>
             </div>
             <div class="card-info">
