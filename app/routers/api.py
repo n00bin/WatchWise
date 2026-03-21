@@ -2,8 +2,9 @@ import csv
 import io
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db
@@ -573,9 +574,6 @@ async def get_stats(user: User = Depends(get_current_user), db: Session = Depend
 @router.get("/trending")
 async def get_trending(db: Session = Depends(get_db)):
     """Global trending on WatchWise — most rated titles this week across all users."""
-    from datetime import timedelta
-    from sqlalchemy import func
-
     week_ago = datetime.utcnow() - timedelta(days=7)
 
     # Top rated movies this week (by number of ratings)
@@ -901,7 +899,6 @@ async def get_feedback(
     db: Session = Depends(get_db),
 ):
     """Get all feedback, sorted by vote count. Optionally filter by type."""
-    from sqlalchemy import func
 
     query = db.query(Feedback)
     if feedback_type:
@@ -1012,8 +1009,6 @@ async def delete_feedback(feedback_id: int, user: User = Depends(require_admin),
 
 @router.get("/admin/users")
 async def get_users(user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    from sqlalchemy import func
-
     users = db.query(User).order_by(User.created_at.desc()).all()
     results = []
     for u in users:

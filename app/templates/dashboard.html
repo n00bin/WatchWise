@@ -137,14 +137,17 @@ function renderGenreChart(elementId, genreCounts) {
 
 async function loadPageData() {
     try {
-        const [stats, trending] = await Promise.all([
-            api('/api/stats'),
-            api('/api/trending'),
-        ]);
+        const stats = await api('/api/stats');
         renderStats(stats);
+    } catch (err) {
+        console.error('Failed to load stats:', err);
+    }
+
+    try {
+        const trending = await api('/api/trending');
         renderTrending(trending);
     } catch (err) {
-        console.error('Failed to load dashboard:', err);
+        document.getElementById('trendingContent').innerHTML = '<p class="search-hint">Trending data unavailable</p>';
     }
 }
 
