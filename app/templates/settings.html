@@ -25,6 +25,30 @@
     </div>
 </div>
 
+<div class="settings-section" id="adminPanel" style="display:none">
+    <h3>Admin Panel</h3>
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:120px">
+            <div style="font-size:0.78rem;color:var(--text-muted)">Total Users</div>
+            <div style="font-size:1.5rem;font-weight:700;color:var(--text)" id="adminTotalUsers">-</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:120px">
+            <div style="font-size:0.78rem;color:var(--text-muted)">Active Users</div>
+            <div style="font-size:1.5rem;font-weight:700;color:var(--text)" id="adminActiveUsers">-</div>
+            <div style="font-size:0.7rem;color:var(--text-dim)">1+ rated items</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:120px">
+            <div style="font-size:0.78rem;color:var(--text-muted)">Total Ratings</div>
+            <div style="font-size:1.5rem;font-weight:700;color:var(--text)" id="adminTotalRatings">-</div>
+        </div>
+    </div>
+
+    <details>
+        <summary style="font-size:0.82rem;color:var(--primary-light);cursor:pointer;font-weight:600;margin-bottom:12px">View All Users</summary>
+        <div id="adminUserList" style="margin-top:12px"></div>
+    </details>
+</div>
+
 <div class="settings-section">
     <h3>About WatchWise</h3>
     <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.6">
@@ -53,8 +77,54 @@ async function loadPageData() {
         document.getElementById('accountUsername').textContent = user.username;
         document.getElementById('accountEmail').textContent = user.email;
         document.getElementById('accountAvatar').textContent = user.username.charAt(0).toUpperCase();
+
+        if (user.is_admin) {
+            document.getElementById('adminPanel').style.display = '';
+            loadAdminData();
+        }
     } catch (err) {
         console.error('Failed to load account info:', err);
+    }
+}
+
+async function loadAdminData() {
+    try {
+        const users = await api('/api/admin/users');
+        const total = users.length;
+        const active = users.filter(u => u.rated_items > 0).length;
+        const totalRatings = users.reduce((sum, u) => sum + u.rated_items, 0);
+
+        document.getElementById('adminTotalUsers').textContent = total;
+        document.getElementById('adminActiveUsers').textContent = active;
+        document.getElementById('adminTotalRatings').textContent = totalRatings;
+
+        document.getElementById('adminUserList').innerHTML = users.length
+            ? `<table style="width:100%;font-size:0.82rem;border-collapse:collapse">
+                <thead>
+                    <tr style="text-align:left;color:var(--text-muted);border-bottom:1px solid var(--border)">
+                        <th style="padding:8px 6px">User</th>
+                        <th style="padding:8px 6px">Items</th>
+                        <th style="padding:8px 6px">Rated</th>
+                        <th style="padding:8px 6px">Joined</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${users.map(u => `
+                        <tr style="border-bottom:1px solid var(--border)">
+                            <td style="padding:8px 6px;color:var(--text)">
+                                ${escapeHtml(u.username)}
+                                ${u.is_admin ? '<span style="font-size:0.7rem;color:var(--primary-light);margin-left:4px">admin</span>' : ''}
+                            </td>
+                            <td style="padding:8px 6px;color:var(--text-muted)">${u.total_items}</td>
+                            <td style="padding:8px 6px;color:var(--text-muted)">${u.rated_items}</td>
+                            <td style="padding:8px 6px;color:var(--text-dim)">${u.created_at ? u.created_at.substring(0, 10) : 'N/A'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>`
+            : '<p class="search-hint">No users yet</p>';
+    } catch (err) {
+        console.error('Failed to load admin data:', err);
     }
 }
 
