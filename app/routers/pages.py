@@ -73,6 +73,14 @@ async def recommendations_page(request: Request):
     })
 
 
+@router.get("/feedback")
+async def feedback_page(request: Request):
+    return templates.TemplateResponse("feedback.html", {
+        "request": request,
+        "page": "feedback",
+    })
+
+
 @router.get("/settings")
 async def settings_page(request: Request):
     return templates.TemplateResponse("settings.html", {

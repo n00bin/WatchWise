@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title_suffix %} - Feedback{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Feedback</h1>
+    <button class="btn btn-primary" onclick="openSubmitModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Submit
+    </button>
+</div>
+
+<div class="tab-bar" id="feedbackTabs">
+    <button class="tab-btn active" data-type="" onclick="filterFeedback('')">All</button>
+    <button class="tab-btn" data-type="feature" onclick="filterFeedback('feature')">Feature Requests</button>
+    <button class="tab-btn" data-type="issue" onclick="filterFeedback('issue')">Issues</button>
+</div>
+
+<div id="feedbackList">
+    <div class="loading-center"><div class="spinner"></div></div>
+</div>
+
+<!-- Submit Modal -->
+<div class="modal-overlay" id="submitModal" onclick="if(event.target===this)closeSubmitModal()">
+    <div class="modal" style="max-width:500px">
+        <div class="modal-header">
+            <h2>Submit Feedback</h2>
+            <button class="btn-icon" onclick="closeSubmitModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group" style="margin-bottom:16px">
+                <label style="font-size:0.82rem;color:var(--text-muted);display:block;margin-bottom:6px">Type</label>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-secondary btn-sm submit-type-btn active" data-type="feature" onclick="setSubmitType('feature')">Feature Request</button>
+                    <button class="btn btn-secondary btn-sm submit-type-btn" data-type="issue" onclick="setSubmitType('issue')">Report Issue</button>
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+                <label style="font-size:0.82rem;color:var(--text-muted);display:block;margin-bottom:6px">Title</label>
+                <input type="text" id="submitTitle" class="form-input" placeholder="Brief description..." maxlength="300">
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+                <label style="font-size:0.82rem;color:var(--text-muted);display:block;margin-bottom:6px">Details (optional)</label>
+                <textarea id="submitDesc" class="form-input" placeholder="Any extra context..." rows="3" style="resize:vertical;font-family:inherit"></textarea>
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="submitFeedback()">Submit</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allFeedback = [];
+let currentFilter = '';
+let submitType = 'feature';
+
+async function loadPageData() {
+    try {
+        allFeedback = await api('/api/feedback');
+        renderFeedback();
+    } catch (err) {
+        document.getElementById('feedbackList').innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px">${err.message}</p>`;
+    }
+}
+
+function filterFeedback(type) {
+    currentFilter = type;
+    document.querySelectorAll('#feedbackTabs .tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+    });
+    renderFeedback();
+}
+
+function renderFeedback() {
+    const container = document.getElementById('feedbackList');
+    const filtered = currentFilter
+        ? allFeedback.filter(f => f.type === currentFilter)
+        : allFeedback;
+
+    if (filtered.length === 0) {
+        const label = currentFilter === 'feature' ? 'feature requests' : currentFilter === 'issue' ? 'issues' : 'feedback';
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px;color:var(--text-muted)">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:12px">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <h3>No ${label} yet</h3>
+                <p style="font-size:0.85rem">Be the first to submit one!</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = filtered.map(f => {
+        const typeColor = f.type === 'feature' ? '#7c3aed' : '#ef4444';
+        const typeLabel = f.type === 'feature' ? 'Feature' : 'Issue';
+        const statusColor = f.status === 'done' ? 'var(--success)' : f.status === 'in_progress' ? '#f59e0b' : 'var(--text-dim)';
+
+        return `
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;gap:16px;align-items:flex-start">
+                <button onclick="toggleVote(${f.id})" style="display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:1px solid ${f.user_voted ? 'var(--primary)' : 'var(--border)'};border-radius:8px;padding:8px 10px;cursor:pointer;min-width:50px;transition:all 0.2s;${f.user_voted ? 'background:rgba(124,58,237,0.1)' : ''}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="${f.user_voted ? 'var(--primary)' : 'none'}" stroke="${f.user_voted ? 'var(--primary)' : 'var(--text-muted)'}" stroke-width="2">
+                        <path d="M12 19V5M5 12l7-7 7 7"/>
+                    </svg>
+                    <span style="font-weight:700;font-size:0.9rem;color:${f.user_voted ? 'var(--primary)' : 'var(--text)'}">${f.vote_count}</span>
+                </button>
+                <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+                        <span style="font-size:0.7rem;font-weight:600;color:white;background:${typeColor};padding:2px 8px;border-radius:4px;text-transform:uppercase">${typeLabel}</span>
+                        ${f.status !== 'open' ? `<span style="font-size:0.7rem;color:${statusColor};font-weight:600;text-transform:uppercase">${f.status.replace('_', ' ')}</span>` : ''}
+                    </div>
+                    <div style="font-weight:600;font-size:0.9rem;color:var(--text);margin-bottom:4px">${escapeHtml(f.title)}</div>
+                    ${f.description ? `<div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5">${escapeHtml(f.description)}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function toggleVote(feedbackId) {
+    try {
+        const result = await api(`/api/feedback/${feedbackId}/vote`, { method: 'POST' });
+        // Update local data
+        const item = allFeedback.find(f => f.id === feedbackId);
+        if (item) {
+            item.user_voted = result.voted;
+            item.vote_count += result.voted ? 1 : -1;
+        }
+        // Re-sort and render
+        allFeedback.sort((a, b) => b.vote_count - a.vote_count);
+        renderFeedback();
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+function openSubmitModal() {
+    document.getElementById('submitModal').classList.add('open');
+    document.getElementById('submitTitle').value = '';
+    document.getElementById('submitDesc').value = '';
+    submitType = 'feature';
+    document.querySelectorAll('.submit-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === 'feature'));
+    setTimeout(() => document.getElementById('submitTitle').focus(), 100);
+}
+
+function closeSubmitModal() {
+    document.getElementById('submitModal').classList.remove('open');
+}
+
+function setSubmitType(type) {
+    submitType = type;
+    document.querySelectorAll('.submit-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+}
+
+async function submitFeedback() {
+    const title = document.getElementById('submitTitle').value.trim();
+    const description = document.getElementById('submitDesc').value.trim();
+
+    if (!title) {
+        showToast('Please enter a title', 'error');
+        return;
+    }
+
+    try {
+        await api('/api/feedback', {
+            method: 'POST',
+            body: { type: submitType, title, description },
+        });
+        showToast('Feedback submitted! Thanks for helping improve WatchWise.', 'success');
+        closeSubmitModal();
+        loadPageData();
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+loadPageData();
+</script>
+{% endblock %}

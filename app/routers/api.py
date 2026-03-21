@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.database import get_db
 from app.models.media import Movie, TVShow, Genre, Anime, movie_genres, tvshow_genres
+from app.models.feedback import Feedback, FeedbackVote
 from app.models.user import User
 from app.services import tmdb, jikan
 from app.services import recommendations as rec_service
@@ -889,6 +890,97 @@ async def get_anime_recs(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── Feedback ────────────────────────────────────────────────────────
+
+@router.get("/feedback")
+async def get_feedback(
+    feedback_type: str = Query(None),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get all feedback, sorted by vote count. Optionally filter by type."""
+    from sqlalchemy import func
+
+    query = db.query(Feedback)
+    if feedback_type:
+        query = query.filter(Feedback.type == feedback_type)
+    items = query.all()
+
+    # Get vote counts and whether current user voted
+    results = []
+    for item in items:
+        vote_count = db.query(FeedbackVote).filter(FeedbackVote.feedback_id == item.id).count()
+        user_voted = db.query(FeedbackVote).filter(
+            FeedbackVote.feedback_id == item.id,
+            FeedbackVote.user_id == user.id,
+        ).first() is not None
+
+        results.append({
+            "id": item.id,
+            "type": item.type,
+            "title": item.title,
+            "description": item.description,
+            "status": item.status,
+            "vote_count": vote_count,
+            "user_voted": user_voted,
+            "is_author": item.user_id == user.id,
+            "created_at": item.created_at.isoformat() if item.created_at else "",
+        })
+
+    results.sort(key=lambda x: x["vote_count"], reverse=True)
+    return results
+
+
+@router.post("/feedback")
+async def create_feedback(data: dict, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    feedback_type = data.get("type", "").strip()
+    title = data.get("title", "").strip()
+    description = data.get("description", "").strip()
+
+    if feedback_type not in ("issue", "feature"):
+        raise HTTPException(status_code=400, detail="Type must be 'issue' or 'feature'")
+    if not title:
+        raise HTTPException(status_code=400, detail="Title is required")
+
+    item = Feedback(
+        user_id=user.id,
+        type=feedback_type,
+        title=title,
+        description=description,
+    )
+    db.add(item)
+    db.flush()
+
+    # Auto-upvote your own submission
+    vote = FeedbackVote(feedback_id=item.id, user_id=user.id)
+    db.add(vote)
+    db.commit()
+
+    return {"status": "ok", "id": item.id}
+
+
+@router.post("/feedback/{feedback_id}/vote")
+async def toggle_vote(feedback_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    item = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+
+    existing = db.query(FeedbackVote).filter(
+        FeedbackVote.feedback_id == feedback_id,
+        FeedbackVote.user_id == user.id,
+    ).first()
+
+    if existing:
+        db.delete(existing)
+        db.commit()
+        return {"status": "ok", "voted": False}
+    else:
+        vote = FeedbackVote(feedback_id=feedback_id, user_id=user.id)
+        db.add(vote)
+        db.commit()
+        return {"status": "ok", "voted": True}
 
 
 # ─── Import ──────────────────────────────────────────────────────────

@@ -211,5 +211,5 @@ def _migrate_db():
 def init_db():
     _migrate_db()
     # Import models so create_all knows about them
-    from app.models import user, media  # noqa: F401
+    from app.models import user, media, feedback  # noqa: F401
     Base.metadata.create_all(bind=engine)
