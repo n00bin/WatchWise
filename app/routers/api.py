@@ -481,7 +481,11 @@ async def get_stats(user: User = Depends(get_current_user), db: Session = Depend
             genres = json.loads(a.genres_json) if a.genres_json else []
         except (json.JSONDecodeError, TypeError):
             genres = []
-        for g in genres:
+        try:
+            themes = json.loads(a.themes_json) if a.themes_json else []
+        except (json.JSONDecodeError, TypeError):
+            themes = []
+        for g in genres + themes:
             genre_counts[g] = genre_counts.get(g, 0) + 1
             anime_genre_counts[g] = anime_genre_counts.get(g, 0) + 1
             if a.user_rating:
