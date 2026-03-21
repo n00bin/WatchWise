@@ -25,7 +25,7 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 
 from app.models.media import Movie, TVShow, Anime
-from app.services import tmdb, jikan, tastedive, trakt
+from app.services import tmdb, jikan, tastedive, trakt, collaborative
 
 
 # ─── Profile Building ────────────────────────────────────────────────
@@ -163,6 +163,10 @@ def _score_candidate(
 
     if candidate.get("trakt"):
         source_score += 5.5
+
+    # Internal collaborative filtering (auto-scales with user base)
+    if candidate.get("cf_weight"):
+        source_score += candidate["cf_weight"]
 
     # Frequency boost (recommended by multiple sources = stronger signal)
     freq = candidate["frequency"]
@@ -325,8 +329,32 @@ async def get_movie_recommendations(db: Session, user_id: int, limit: int = 60, 
         "media_type": "movie",
         "tastedive": False,
         "trakt": False,
+        "cf_weight": 0,
         "keyword_bonus": 0,
     })
+
+    # Internal CF: WatchWise community (auto-activates with enough users)
+    cf_recs = collaborative.get_cf_movie_recs(db, user_id)
+    for cf in cf_recs:
+        tid = cf["tmdb_id"]
+        if tid in tracked_ids:
+            continue
+        c = candidates[tid]
+        c["cf_weight"] = cf["cf_weight"]
+        if "WatchWise community" not in c["sources"]:
+            c["sources"].insert(0, "WatchWise community")
+            c["frequency"] += cf["supporter_count"]
+        # Look up on TMDB if we don't have data yet
+        if c["data"] is None:
+            try:
+                search_data = await tmdb.search_movies(str(tid))
+                for sr in search_data.get("results", []):
+                    if sr["id"] == tid:
+                        c["data"] = sr
+                        c["media_type"] = "movie"
+                        break
+            except Exception:
+                pass
 
     # TasteDive: collaborative filtering
     if loved_movies:
@@ -406,8 +434,31 @@ async def get_tv_recommendations(db: Session, user_id: int, limit: int = 60, shu
         "media_type": "tv",
         "tastedive": False,
         "trakt": False,
+        "cf_weight": 0,
         "keyword_bonus": 0,
     })
+
+    # Internal CF: WatchWise community
+    cf_recs = collaborative.get_cf_tv_recs(db, user_id)
+    for cf in cf_recs:
+        tid = cf["tmdb_id"]
+        if tid in tracked_ids:
+            continue
+        c = candidates[tid]
+        c["cf_weight"] = cf["cf_weight"]
+        if "WatchWise community" not in c["sources"]:
+            c["sources"].insert(0, "WatchWise community")
+            c["frequency"] += cf["supporter_count"]
+        if c["data"] is None:
+            try:
+                search_data = await tmdb.search_tv(str(tid))
+                for sr in search_data.get("results", []):
+                    if sr["id"] == tid:
+                        c["data"] = sr
+                        c["media_type"] = "tv"
+                        break
+            except Exception:
+                pass
 
     # TasteDive: collaborative filtering
     if loved_shows:

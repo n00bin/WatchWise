@@ -132,18 +132,7 @@ async function loadPageData(page = 1, shuffle = false) {
     const endpoint = `${base}?page=${page}&shuffle=${shuffle}${cacheBust}`;
 
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000);
-
-        const resp = await fetch(endpoint, { signal: controller.signal });
-        clearTimeout(timeout);
-
-        if (!resp.ok) {
-            const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-            throw new Error(err.detail || 'Request failed');
-        }
-
-        const data = await resp.json();
+        const data = await api(endpoint);
         currentRecs = data.results;
         totalPages = data.total_pages;
         currentPage = data.page;
