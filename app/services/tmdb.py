@@ -72,6 +72,19 @@ async def get_tv_details(tmdb_id: int) -> dict:
         return resp.json()
 
 
+async def get_tv_simple(tmdb_id: int) -> dict:
+    """Get TV show with next/last episode info (lighter than full details)."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{TMDB_BASE_URL}/tv/{tmdb_id}",
+            params=_params(),
+            headers=_headers(),
+            timeout=10.0,
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+
 async def get_genre_list(media_type: str = "movie") -> list:
     async with httpx.AsyncClient() as client:
         resp = await client.get(

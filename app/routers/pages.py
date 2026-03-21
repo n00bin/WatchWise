@@ -57,6 +57,14 @@ async def anime_page(request: Request):
     })
 
 
+@router.get("/calendar")
+async def calendar_page(request: Request):
+    return templates.TemplateResponse("calendar.html", {
+        "request": request,
+        "page": "calendar",
+    })
+
+
 @router.get("/recommendations")
 async def recommendations_page(request: Request):
     return templates.TemplateResponse("recommendations.html", {

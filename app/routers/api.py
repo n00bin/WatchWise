@@ -567,6 +567,58 @@ async def get_stats(user: User = Depends(get_current_user), db: Session = Depend
     }
 
 
+# ─── Calendar ────────────────────────────────────────────────────────
+
+@router.get("/calendar")
+async def get_calendar(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get upcoming episodes for shows the user is currently watching."""
+    watching_shows = db.query(TVShow).filter(
+        TVShow.user_id == user.id,
+        TVShow.status == "watching"
+    ).all()
+
+    upcoming = []
+
+    for show in watching_shows:
+        try:
+            data = await tmdb.get_tv_simple(show.tmdb_id)
+
+            next_ep = data.get("next_episode_to_air")
+            if next_ep and next_ep.get("air_date"):
+                upcoming.append({
+                    "show_title": show.title,
+                    "poster_path": tmdb.poster_url(show.poster_path, "w185"),
+                    "season": next_ep.get("season_number", 0),
+                    "episode": next_ep.get("episode_number", 0),
+                    "episode_name": next_ep.get("name", ""),
+                    "air_date": next_ep["air_date"],
+                    "overview": (next_ep.get("overview") or "")[:150],
+                    "media_type": "tv",
+                })
+
+            # Also check if show is still airing
+            status = data.get("status", "")
+            last_ep = data.get("last_episode_to_air")
+            if not next_ep and last_ep and status in ("Returning Series", "In Production"):
+                upcoming.append({
+                    "show_title": show.title,
+                    "poster_path": tmdb.poster_url(show.poster_path, "w185"),
+                    "season": last_ep.get("season_number", 0),
+                    "episode": last_ep.get("episode_number", 0),
+                    "episode_name": "Waiting for new episodes",
+                    "air_date": "",
+                    "overview": f"{status} — no air date announced yet",
+                    "media_type": "tv",
+                })
+        except Exception:
+            continue
+
+    # Sort by air date (items with dates first, then undated)
+    upcoming.sort(key=lambda x: x["air_date"] if x["air_date"] else "9999-99-99")
+
+    return {"upcoming": upcoming, "watching_count": len(watching_shows)}
+
+
 # ─── Recommendations ─────────────────────────────────────────────────
 
 @router.get("/recommendations/movies")
