@@ -613,10 +613,55 @@ async def get_calendar(user: User = Depends(get_current_user), db: Session = Dep
         except Exception:
             continue
 
+    # Anime currently watching
+    watching_anime = db.query(Anime).filter(
+        Anime.user_id == user.id,
+        Anime.status == "watching"
+    ).all()
+
+    for anime in watching_anime:
+        try:
+            data = await jikan.get_anime_details(anime.mal_id)
+            status = data.get("status", "")
+            broadcast = data.get("broadcast", {})
+            aired = data.get("aired", {})
+
+            if status == "Currently Airing":
+                # Try to get next airing day from broadcast info
+                day = broadcast.get("day", "")
+                time_str = broadcast.get("time", "")
+                air_info = f"Airs {day}" + (f" at {time_str} JST" if time_str else "")
+
+                upcoming.append({
+                    "show_title": anime.title_english or anime.title,
+                    "poster_path": anime.poster_url,
+                    "season": 1,
+                    "episode": (anime.current_episode or 0) + 1,
+                    "episode_name": air_info,
+                    "air_date": "",  # Jikan doesn't give exact next episode date
+                    "overview": f"Episode {(anime.current_episode or 0) + 1} of {anime.episodes or '?'} — Currently Airing",
+                    "media_type": "anime",
+                })
+            elif status == "Not yet aired":
+                air_from = aired.get("from", "")
+                air_date = air_from[:10] if air_from else ""
+                upcoming.append({
+                    "show_title": anime.title_english or anime.title,
+                    "poster_path": anime.poster_url,
+                    "season": 1,
+                    "episode": 1,
+                    "episode_name": "Upcoming",
+                    "air_date": air_date,
+                    "overview": f"Premieres {air_date}" if air_date else "Air date TBA",
+                    "media_type": "anime",
+                })
+        except Exception:
+            continue
+
     # Sort by air date (items with dates first, then undated)
     upcoming.sort(key=lambda x: x["air_date"] if x["air_date"] else "9999-99-99")
 
-    return {"upcoming": upcoming, "watching_count": len(watching_shows)}
+    return {"upcoming": upcoming, "watching_count": len(watching_shows) + len(watching_anime)}
 
 
 # ─── Recommendations ─────────────────────────────────────────────────
