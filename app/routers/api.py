@@ -659,7 +659,7 @@ async def get_trending(db: Session = Depends(get_db)):
         )
         .filter(Movie.user_rating.isnot(None), Movie.date_watched >= week_ago)
         .group_by(Movie.tmdb_id, Movie.title, Movie.poster_path, Movie.release_date)
-        .order_by(func.count(Movie.id).desc())
+        .order_by((func.avg(Movie.user_rating) * func.log(func.count(Movie.id) + 1)).desc())
         .limit(10).all()
     )
 
@@ -671,7 +671,7 @@ async def get_trending(db: Session = Depends(get_db)):
         )
         .filter(TVShow.user_rating.isnot(None), TVShow.date_watched >= week_ago)
         .group_by(TVShow.tmdb_id, TVShow.title, TVShow.poster_path, TVShow.first_air_date)
-        .order_by(func.count(TVShow.id).desc())
+        .order_by((func.avg(TVShow.user_rating) * func.log(func.count(TVShow.id) + 1)).desc())
         .limit(10).all()
     )
 
@@ -683,7 +683,7 @@ async def get_trending(db: Session = Depends(get_db)):
         )
         .filter(Anime.user_rating.isnot(None), Anime.date_watched >= week_ago)
         .group_by(Anime.mal_id, Anime.title, Anime.title_english, Anime.poster_url)
-        .order_by(func.count(Anime.id).desc())
+        .order_by((func.avg(Anime.user_rating) * func.log(func.count(Anime.id) + 1)).desc())
         .limit(10).all()
     )
 
@@ -697,7 +697,7 @@ async def get_trending(db: Session = Depends(get_db)):
             )
             .filter(Movie.user_rating.isnot(None))
             .group_by(Movie.tmdb_id, Movie.title, Movie.poster_path, Movie.release_date)
-            .order_by(func.count(Movie.id).desc())
+            .order_by((func.avg(Movie.user_rating) * func.log(func.count(Movie.id) + 1)).desc())
             .limit(10).all()
         )
 
@@ -710,7 +710,7 @@ async def get_trending(db: Session = Depends(get_db)):
             )
             .filter(TVShow.user_rating.isnot(None))
             .group_by(TVShow.tmdb_id, TVShow.title, TVShow.poster_path, TVShow.first_air_date)
-            .order_by(func.count(TVShow.id).desc())
+            .order_by((func.avg(TVShow.user_rating) * func.log(func.count(TVShow.id) + 1)).desc())
             .limit(10).all()
         )
 
@@ -723,7 +723,7 @@ async def get_trending(db: Session = Depends(get_db)):
             )
             .filter(Anime.user_rating.isnot(None))
             .group_by(Anime.mal_id, Anime.title, Anime.title_english, Anime.poster_url)
-            .order_by(func.count(Anime.id).desc())
+            .order_by((func.avg(Anime.user_rating) * func.log(func.count(Anime.id) + 1)).desc())
             .limit(10).all()
         )
 
