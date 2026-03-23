@@ -214,21 +214,19 @@ def init_db():
     from app.models import user, media, feedback  # noqa: F401
 
     # Add missing columns to existing tables (PostgreSQL + SQLite)
-    from sqlalchemy import inspect, text
-    inspector = inspect(engine)
-    existing_tables = inspector.get_table_names()
-
-    if "tvshows" in existing_tables:
-        tv_cols = [c["name"] for c in inspector.get_columns("tvshows")]
-        if "airing_status" not in tv_cols:
+    # Add missing columns to existing tables
+    from sqlalchemy import text
+    migrations = [
+        ("tvshows", "airing_status", "ALTER TABLE tvshows ADD COLUMN airing_status VARCHAR(30) DEFAULT ''"),
+        ("users", "is_admin", "ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0"),
+    ]
+    for table, column, sql in migrations:
+        try:
             with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE tvshows ADD COLUMN airing_status VARCHAR(30) DEFAULT ''"))
-
-    if "users" in existing_tables:
-        user_cols = [c["name"] for c in inspector.get_columns("users")]
-        if "is_admin" not in user_cols:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0"))
+                conn.execute(text(sql))
+                print(f"Added column {column} to {table}")
+        except Exception:
+            pass  # Column already exists
 
     # Create any new tables
     Base.metadata.create_all(bind=engine)
