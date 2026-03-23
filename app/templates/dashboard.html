@@ -98,21 +98,6 @@
 
 <div class="chart-section">
     <div class="chart-card">
-        <h3>Overall Genres</h3>
-        <div class="chart-bar-group" id="genreChart">
-            <div class="loading-center"><div class="spinner"></div></div>
-        </div>
-    </div>
-    <div class="chart-card">
-        <h3>Rating Distribution</h3>
-        <div class="rating-bars" id="ratingChart">
-            <div class="loading-center"><div class="spinner"></div></div>
-        </div>
-    </div>
-</div>
-
-<div class="chart-section">
-    <div class="chart-card">
         <h3>Movie Genres</h3>
         <div class="chart-bar-group" id="movieGenreChart">
             <div class="loading-center"><div class="spinner"></div></div>
@@ -133,6 +118,15 @@
             <div class="loading-center"><div class="spinner"></div></div>
         </div>
     </div>
+    <div class="chart-card">
+        <h3>Rating Distribution</h3>
+        <div class="rating-bars" id="ratingChart">
+            <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="chart-section">
     <div class="chart-card">
         <h3>Top Genres (by your rating)</h3>
         <div class="top-genres-list" id="topGenres">
@@ -292,7 +286,6 @@ function renderStats(s) {
     document.getElementById('statHoursSub').textContent = `${s.movie_hours}h movies | ${s.tv_hours}h TV | ${s.anime_hours}h anime`;
 
     // Genre chart
-    renderGenreChart('genreChart', s.genre_counts || {});
     renderGenreChart('movieGenreChart', s.movie_genre_counts || {});
     renderGenreChart('tvGenreChart', s.tv_genre_counts || {});
     renderGenreChart('animeGenreChart', s.anime_genre_counts || {});
