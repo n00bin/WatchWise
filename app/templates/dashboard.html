@@ -282,11 +282,11 @@ function renderTrending(data) {
 function renderStats(s) {
     // Stat cards
     document.getElementById('statMovies').textContent = s.watched_movies;
-    document.getElementById('statMoviesTotal').textContent = `${s.total_movies} total tracked`;
+    document.getElementById('statMoviesTotal').textContent = s.avg_movie_rating ? `Avg ${s.avg_movie_rating}/5` : `${s.total_movies} tracked`;
     document.getElementById('statShows').textContent = s.watched_tvshows;
-    document.getElementById('statShowsTotal').textContent = `${s.total_tvshows} total tracked`;
+    document.getElementById('statShowsTotal').textContent = s.avg_tvshow_rating ? `Avg ${s.avg_tvshow_rating}/5` : `${s.total_tvshows} tracked`;
     document.getElementById('statAnime').textContent = s.completed_anime;
-    document.getElementById('statAnimeTotal').textContent = `${s.total_anime} total tracked`;
+    document.getElementById('statAnimeTotal').textContent = s.avg_anime_rating ? `Avg ${s.avg_anime_rating}/5` : `${s.total_anime} tracked`;
 
     document.getElementById('statHours').textContent = `${s.total_hours}h`;
     document.getElementById('statHoursSub').textContent = `${s.movie_hours}h movies | ${s.tv_hours}h TV | ${s.anime_hours}h anime`;
