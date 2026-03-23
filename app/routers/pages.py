@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.services.settings import get_tmdb_key
@@ -8,15 +7,9 @@ templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
 
 
-def _has_token(request: Request) -> bool:
-    """Check if request has an auth token (cookie or localStorage via JS)."""
-    return bool(request.cookies.get("access_token"))
-
-
 @router.get("/u/{username}")
 async def profile_page(request: Request, username: str):
-    return templates.TemplateResponse("profile.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "profile.html", {
         "page": "profile",
         "username": username,
     })
@@ -24,19 +17,18 @@ async def profile_page(request: Request, username: str):
 
 @router.get("/login")
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "page": "login"})
+    return templates.TemplateResponse(request, "login.html", {"page": "login"})
 
 
 @router.get("/privacy")
 async def privacy_page(request: Request):
-    return templates.TemplateResponse("privacy.html", {"request": request, "page": "privacy"})
+    return templates.TemplateResponse(request, "privacy.html", {"page": "privacy"})
 
 
 @router.get("/")
 async def dashboard(request: Request):
     has_key = bool(get_tmdb_key())
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard.html", {
         "page": "dashboard",
         "has_api_key": has_key,
     })
@@ -44,55 +36,34 @@ async def dashboard(request: Request):
 
 @router.get("/movies")
 async def movies_page(request: Request):
-    return templates.TemplateResponse("movies.html", {
-        "request": request,
-        "page": "movies",
-    })
+    return templates.TemplateResponse(request, "movies.html", {"page": "movies"})
 
 
 @router.get("/tvshows")
 async def tvshows_page(request: Request):
-    return templates.TemplateResponse("tvshows.html", {
-        "request": request,
-        "page": "tvshows",
-    })
+    return templates.TemplateResponse(request, "tvshows.html", {"page": "tvshows"})
 
 
 @router.get("/anime")
 async def anime_page(request: Request):
-    return templates.TemplateResponse("anime.html", {
-        "request": request,
-        "page": "anime",
-    })
+    return templates.TemplateResponse(request, "anime.html", {"page": "anime"})
 
 
 @router.get("/calendar")
 async def calendar_page(request: Request):
-    return templates.TemplateResponse("calendar.html", {
-        "request": request,
-        "page": "calendar",
-    })
+    return templates.TemplateResponse(request, "calendar.html", {"page": "calendar"})
 
 
 @router.get("/recommendations")
 async def recommendations_page(request: Request):
-    return templates.TemplateResponse("recommendations.html", {
-        "request": request,
-        "page": "recommendations",
-    })
+    return templates.TemplateResponse(request, "recommendations.html", {"page": "recommendations"})
 
 
 @router.get("/feedback")
 async def feedback_page(request: Request):
-    return templates.TemplateResponse("feedback.html", {
-        "request": request,
-        "page": "feedback",
-    })
+    return templates.TemplateResponse(request, "feedback.html", {"page": "feedback"})
 
 
 @router.get("/settings")
 async def settings_page(request: Request):
-    return templates.TemplateResponse("settings.html", {
-        "request": request,
-        "page": "settings",
-    })
+    return templates.TemplateResponse(request, "settings.html", {"page": "settings"})
