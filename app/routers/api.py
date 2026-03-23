@@ -652,110 +652,83 @@ async def get_stats(user: User = Depends(get_current_user), db: Session = Depend
 
 @router.get("/trending")
 async def get_trending(db: Session = Depends(get_db)):
-    """Global trending on WatchWise — most rated titles this week across all users."""
+    """Global trending on WatchWise — most rated titles across all users."""
     week_ago = datetime.utcnow() - timedelta(days=7)
 
-    # Top rated movies this week (by number of ratings)
     trending_movies = (
         db.query(
-            Movie.tmdb_id,
-            Movie.title,
-            Movie.poster_path,
-            Movie.release_date,
+            Movie.tmdb_id, Movie.title, Movie.poster_path, Movie.release_date,
             func.count(Movie.id).label("rating_count"),
             func.avg(Movie.user_rating).label("avg_rating"),
         )
         .filter(Movie.user_rating.isnot(None), Movie.date_watched >= week_ago)
-        .group_by(Movie.tmdb_id)
+        .group_by(Movie.tmdb_id, Movie.title, Movie.poster_path, Movie.release_date)
         .order_by(func.count(Movie.id).desc())
-        .limit(10)
-        .all()
+        .limit(10).all()
     )
 
-    # Top rated TV shows this week
     trending_tv = (
         db.query(
-            TVShow.tmdb_id,
-            TVShow.title,
-            TVShow.poster_path,
-            TVShow.first_air_date,
+            TVShow.tmdb_id, TVShow.title, TVShow.poster_path, TVShow.first_air_date,
             func.count(TVShow.id).label("rating_count"),
             func.avg(TVShow.user_rating).label("avg_rating"),
         )
         .filter(TVShow.user_rating.isnot(None), TVShow.date_watched >= week_ago)
-        .group_by(TVShow.tmdb_id)
+        .group_by(TVShow.tmdb_id, TVShow.title, TVShow.poster_path, TVShow.first_air_date)
         .order_by(func.count(TVShow.id).desc())
-        .limit(10)
-        .all()
+        .limit(10).all()
     )
 
-    # Top rated anime this week
     trending_anime = (
         db.query(
-            Anime.mal_id,
-            Anime.title,
-            Anime.title_english,
-            Anime.poster_url,
+            Anime.mal_id, Anime.title, Anime.title_english, Anime.poster_url,
             func.count(Anime.id).label("rating_count"),
             func.avg(Anime.user_rating).label("avg_rating"),
         )
         .filter(Anime.user_rating.isnot(None), Anime.date_watched >= week_ago)
-        .group_by(Anime.mal_id)
+        .group_by(Anime.mal_id, Anime.title, Anime.title_english, Anime.poster_url)
         .order_by(func.count(Anime.id).desc())
-        .limit(10)
-        .all()
+        .limit(10).all()
     )
 
     # If not enough this week, expand to all time
     if len(trending_movies) < 3:
         trending_movies = (
             db.query(
-                Movie.tmdb_id,
-                Movie.title,
-                Movie.poster_path,
-                Movie.release_date,
+                Movie.tmdb_id, Movie.title, Movie.poster_path, Movie.release_date,
                 func.count(Movie.id).label("rating_count"),
                 func.avg(Movie.user_rating).label("avg_rating"),
             )
             .filter(Movie.user_rating.isnot(None))
-            .group_by(Movie.tmdb_id)
+            .group_by(Movie.tmdb_id, Movie.title, Movie.poster_path, Movie.release_date)
             .order_by(func.count(Movie.id).desc())
-            .limit(10)
-            .all()
+            .limit(10).all()
         )
 
     if len(trending_tv) < 3:
         trending_tv = (
             db.query(
-                TVShow.tmdb_id,
-                TVShow.title,
-                TVShow.poster_path,
-                TVShow.first_air_date,
+                TVShow.tmdb_id, TVShow.title, TVShow.poster_path, TVShow.first_air_date,
                 func.count(TVShow.id).label("rating_count"),
                 func.avg(TVShow.user_rating).label("avg_rating"),
             )
             .filter(TVShow.user_rating.isnot(None))
-            .group_by(TVShow.tmdb_id)
+            .group_by(TVShow.tmdb_id, TVShow.title, TVShow.poster_path, TVShow.first_air_date)
             .order_by(func.count(TVShow.id).desc())
-            .limit(10)
-            .all()
+            .limit(10).all()
         )
 
     if len(trending_anime) < 3:
         trending_anime = (
             db.query(
-                Anime.mal_id,
-                Anime.title,
-                Anime.title_english,
-                Anime.poster_url,
+                Anime.mal_id, Anime.title, Anime.title_english, Anime.poster_url,
                 func.count(Anime.id).label("rating_count"),
                 func.avg(Anime.user_rating).label("avg_rating"),
             )
             .filter(Anime.user_rating.isnot(None))
-            .group_by(Anime.mal_id)
+            .group_by(Anime.mal_id, Anime.title, Anime.title_english, Anime.poster_url)
             .order_by(func.count(Anime.id).desc())
-            .limit(10)
-            .all()
+            .limit(10).all()
         )
 
     return {
