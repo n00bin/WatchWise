@@ -312,20 +312,13 @@ async def get_movie_recommendations(db: Session, user_id: int, limit: int = 100,
     genre_profile = _build_genre_profile(db, user_id)
     keyword_profile = _build_keyword_profile(db, user_id)
 
+    # Use ALL rated movies as seeds, highest rated first
     loved_movies = (
         db.query(Movie)
-        .filter(Movie.user_id == user_id, Movie.user_rating >= 4, Movie.status == "watched")
+        .filter(Movie.user_id == user_id, Movie.status == "watched", Movie.user_rating.isnot(None))
         .order_by(Movie.user_rating.desc())
         .all()
     )
-    if not loved_movies:
-        loved_movies = (
-            db.query(Movie)
-            .filter(Movie.user_id == user_id, Movie.status == "watched", Movie.user_rating.isnot(None))
-            .order_by(Movie.user_rating.desc())
-            .limit(10)
-            .all()
-        )
 
     if not loved_movies and not genre_profile:
         return []
@@ -417,20 +410,13 @@ async def get_tv_recommendations(db: Session, user_id: int, limit: int = 100, sh
     genre_profile = _build_genre_profile(db, user_id)
     keyword_profile = _build_keyword_profile(db, user_id)
 
+    # Use ALL rated shows as seeds, highest rated first
     loved_shows = (
         db.query(TVShow)
-        .filter(TVShow.user_id == user_id, TVShow.user_rating >= 4, TVShow.status == "watched")
+        .filter(TVShow.user_id == user_id, TVShow.status == "watched", TVShow.user_rating.isnot(None))
         .order_by(TVShow.user_rating.desc())
         .all()
     )
-    if not loved_shows:
-        loved_shows = (
-            db.query(TVShow)
-            .filter(TVShow.user_id == user_id, TVShow.status == "watched", TVShow.user_rating.isnot(None))
-            .order_by(TVShow.user_rating.desc())
-            .limit(10)
-            .all()
-        )
 
     if not loved_shows and not genre_profile:
         return []
@@ -556,20 +542,13 @@ def _build_anime_genre_profile(db: Session, user_id: int) -> dict:
 
 async def get_anime_recommendations(db: Session, user_id: int, limit: int = 100, shuffle: bool = False) -> list:
     """Generate anime recommendations from Jikan API."""
+    # Use ALL rated anime as seeds, highest rated first
     loved_anime = (
         db.query(Anime)
-        .filter(Anime.user_id == user_id, Anime.user_rating >= 4, Anime.status == "completed")
+        .filter(Anime.user_id == user_id, Anime.status == "completed", Anime.user_rating.isnot(None))
         .order_by(Anime.user_rating.desc())
         .all()
     )
-    if not loved_anime:
-        loved_anime = (
-            db.query(Anime)
-            .filter(Anime.user_id == user_id, Anime.status == "completed", Anime.user_rating.isnot(None))
-            .order_by(Anime.user_rating.desc())
-            .limit(10)
-            .all()
-        )
 
     if not loved_anime:
         return []
