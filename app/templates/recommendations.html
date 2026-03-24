@@ -216,7 +216,7 @@ function renderRecs(recs) {
                                 ${r.poster_url
                                     ? `<img src="${r.poster_url}" alt="${escapeHtml(r.title)}" loading="lazy">`
                                     : '<div class="no-poster">No Poster</div>'}
-                                <div class="rec-score">${r.score}</div>
+                                <div class="rec-score" title="Match score — how well this fits your taste">${r.score} match</div>
                             </div>
                             <div class="card-info">
                                 <div class="card-title" title="${escapeHtml(r.title)}">${escapeHtml(r.title_english || r.title)}</div>
@@ -237,7 +237,7 @@ function renderRecs(recs) {
                             ${r.poster_path
                                 ? `<img src="${r.poster_path}" alt="${escapeHtml(r.title)}" loading="lazy">`
                                 : '<div class="no-poster">No Poster</div>'}
-                            <div class="rec-score">${r.score}</div>
+                            <div class="rec-score" title="Match score — how well this fits your taste">${r.score} match</div>
                         </div>
                         <div class="card-info">
                             <div class="card-title" title="${escapeHtml(r.title)}">${escapeHtml(r.title)}</div>
