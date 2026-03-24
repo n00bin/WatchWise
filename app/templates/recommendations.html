@@ -360,6 +360,8 @@ async function doRecAction(status) {
         }
     }
 
+    // Save reference before closing menu (closeActionMenu sets selectedRec to null)
+    const recToRemove = selectedRec;
     closeActionMenu();
 
     try {
@@ -375,7 +377,7 @@ async function doRecAction(status) {
         showToast(msg, 'success');
 
         // Remove the card instead of reloading — let users keep rating
-        const recIndex = currentRecs.indexOf(selectedRec);
+        const recIndex = currentRecs.indexOf(recToRemove);
         if (recIndex > -1) {
             currentRecs.splice(recIndex, 1);
             renderRecs(currentRecs);
