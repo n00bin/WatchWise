@@ -869,7 +869,7 @@ async def get_movie_recs(
 ):
     try:
         recs = await rec_service.get_movie_recommendations(
-            db, user_id=user.id, limit=60, shuffle=shuffle
+            db, user_id=user.id, limit=100, shuffle=shuffle
         )
         for r in recs:
             r["poster_path"] = tmdb.poster_url(r["poster_path"])
@@ -889,7 +889,7 @@ async def get_tv_recs(
 ):
     try:
         recs = await rec_service.get_tv_recommendations(
-            db, user_id=user.id, limit=60, shuffle=shuffle
+            db, user_id=user.id, limit=100, shuffle=shuffle
         )
         for r in recs:
             r["poster_path"] = tmdb.poster_url(r["poster_path"])
@@ -909,7 +909,7 @@ async def get_anime_recs(
 ):
     try:
         recs = await rec_service.get_anime_recommendations(
-            db, user_id=user.id, limit=60, shuffle=shuffle
+            db, user_id=user.id, limit=100, shuffle=shuffle
         )
         return {
             "results": recs,

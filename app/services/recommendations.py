@@ -209,15 +209,16 @@ async def _collect_tastedive_recs(loved_items, tracked_ids, candidates, search_f
         return
 
     all_titles = [item.title for item in loved_items]
+    td_results = []
+    seen = set()
 
-    # First batch: top 5 rated items
-    td_results = await td_fn(all_titles[:5], limit=20)
-
-    # Second batch: next 5 items for diversity
-    if len(all_titles) > 5:
-        td_results2 = await td_fn(all_titles[5:10], limit=15)
-        seen = {r["name"].lower() for r in td_results}
-        for r in td_results2:
+    # Send batches of 5 titles — more batches = more diverse results
+    for i in range(0, min(len(all_titles), 30), 5):
+        batch = all_titles[i:i+5]
+        if not batch:
+            break
+        batch_results = await td_fn(batch, limit=20)
+        for r in batch_results:
             if r["name"].lower() not in seen:
                 td_results.append(r)
                 seen.add(r["name"].lower())
@@ -258,9 +259,9 @@ async def _collect_trakt_recs(loved_items, tracked_ids, candidates, fetch_relate
     if not loved_items:
         return
 
-    for item in loved_items[:8]:
+    for item in loved_items[:20]:
         try:
-            related = await fetch_related(tmdb_id=item.tmdb_id, limit=10)
+            related = await fetch_related(tmdb_id=item.tmdb_id, limit=15)
             for rel in related:
                 rel_tmdb_id = rel.get("tmdb_id")
                 if not rel_tmdb_id or rel_tmdb_id in tracked_ids:
@@ -297,7 +298,7 @@ async def _collect_trakt_recs(loved_items, tracked_ids, candidates, fetch_relate
 # ─── Movie Recommendations ──────────────────────────────────────────
 
 
-async def get_movie_recommendations(db: Session, user_id: int, limit: int = 60, shuffle: bool = False) -> list:
+async def get_movie_recommendations(db: Session, user_id: int, limit: int = 100, shuffle: bool = False) -> list:
     genre_profile = _build_genre_profile(db, user_id)
     keyword_profile = _build_keyword_profile(db, user_id)
 
@@ -402,7 +403,7 @@ async def get_movie_recommendations(db: Session, user_id: int, limit: int = 60, 
 # ─── TV Show Recommendations ────────────────────────────────────────
 
 
-async def get_tv_recommendations(db: Session, user_id: int, limit: int = 60, shuffle: bool = False) -> list:
+async def get_tv_recommendations(db: Session, user_id: int, limit: int = 100, shuffle: bool = False) -> list:
     genre_profile = _build_genre_profile(db, user_id)
     keyword_profile = _build_keyword_profile(db, user_id)
 
@@ -543,7 +544,7 @@ def _build_anime_genre_profile(db: Session, user_id: int) -> dict:
     return profile
 
 
-async def get_anime_recommendations(db: Session, user_id: int, limit: int = 60, shuffle: bool = False) -> list:
+async def get_anime_recommendations(db: Session, user_id: int, limit: int = 100, shuffle: bool = False) -> list:
     """Generate anime recommendations from Jikan API."""
     loved_anime = (
         db.query(Anime)
