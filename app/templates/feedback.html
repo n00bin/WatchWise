@@ -35,9 +35,9 @@
         <div class="modal-body">
             <div class="form-group" style="margin-bottom:16px">
                 <label style="font-size:0.82rem;color:var(--text-muted);display:block;margin-bottom:6px">Type</label>
-                <div style="display:flex;gap:8px">
-                    <button class="btn btn-secondary btn-sm submit-type-btn active" data-type="feature" onclick="setSubmitType('feature')">Feature Request</button>
-                    <button class="btn btn-secondary btn-sm submit-type-btn" data-type="issue" onclick="setSubmitType('issue')">Report Issue</button>
+                <div style="display:flex;gap:8px" id="submitTypeBtns">
+                    <button class="btn btn-sm submit-type-btn" data-type="feature" onclick="setSubmitType('feature')" style="background:#7c3aed;color:white;border-color:#7c3aed">Feature Request</button>
+                    <button class="btn btn-sm submit-type-btn" data-type="issue" onclick="setSubmitType('issue')" style="background:transparent;color:var(--text-muted);border:1px solid var(--border)">Report Issue</button>
                 </div>
             </div>
             <div class="form-group" style="margin-bottom:16px">
@@ -162,7 +162,7 @@ function openSubmitModal() {
     document.getElementById('submitTitle').value = '';
     document.getElementById('submitDesc').value = '';
     submitType = 'feature';
-    document.querySelectorAll('.submit-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === 'feature'));
+    setSubmitType('feature');
     setTimeout(() => document.getElementById('submitTitle').focus(), 100);
 }
 
@@ -172,7 +172,15 @@ function closeSubmitModal() {
 
 function setSubmitType(type) {
     submitType = type;
-    document.querySelectorAll('.submit-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+    const featureColor = '#7c3aed';
+    const issueColor = '#ef4444';
+    document.querySelectorAll('.submit-type-btn').forEach(b => {
+        const isActive = b.dataset.type === type;
+        const color = b.dataset.type === 'feature' ? featureColor : issueColor;
+        b.style.background = isActive ? color : 'transparent';
+        b.style.color = isActive ? 'white' : 'var(--text-muted)';
+        b.style.borderColor = isActive ? color : 'var(--border)';
+    });
 }
 
 async function submitFeedback() {
