@@ -373,7 +373,13 @@ async function doRecAction(status) {
             msg += ` Rated ${selectedRating}/5 — thanks for helping the community!`;
         }
         showToast(msg, 'success');
-        loadPageData();
+
+        // Remove the card instead of reloading — let users keep rating
+        const recIndex = currentRecs.indexOf(selectedRec);
+        if (recIndex > -1) {
+            currentRecs.splice(recIndex, 1);
+            renderRecs(currentRecs);
+        }
     } catch (err) {
         if (err.message.includes('already')) {
             showToast('Already in your list!', 'info');
