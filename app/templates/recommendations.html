@@ -129,13 +129,11 @@ async function loadPageData(page = 1, shuffle = false) {
         base = '/api/recommendations/movies';
     }
     const cacheBust = shuffle ? `&_=${Date.now()}` : '';
-    const endpoint = `${base}?page=${page}&shuffle=${shuffle}${cacheBust}`;
+    const endpoint = `${base}?page=1&shuffle=${shuffle}${cacheBust}`;
 
     try {
         const data = await api(endpoint);
         currentRecs = data.results;
-        totalPages = data.total_pages;
-        currentPage = data.page;
 
         renderRecs(currentRecs);
     } catch (err) {
@@ -191,21 +189,6 @@ function renderRecs(recs) {
         return;
     }
 
-    let paginationHtml = '';
-    if (totalPages > 1) {
-        paginationHtml = `
-            <div class="rec-pagination">
-                <button class="btn btn-secondary btn-sm" onclick="goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>
-                    &larr; Previous
-                </button>
-                <span class="rec-page-info">Page ${currentPage} of ${totalPages}</span>
-                <button class="btn btn-secondary btn-sm" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>
-                    Next &rarr;
-                </button>
-            </div>
-        `;
-    }
-
     container.innerHTML = `
         <div class="media-grid">
             ${recs.map((r, i) => {
@@ -253,7 +236,6 @@ function renderRecs(recs) {
                 `;
             }).join('')}
         </div>
-        ${paginationHtml}
     `;
 }
 

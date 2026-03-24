@@ -868,20 +868,13 @@ async def get_movie_recs(
     db: Session = Depends(get_db),
 ):
     try:
-        per_page = 20
         recs = await rec_service.get_movie_recommendations(
-            db, user_id=user.id, limit=per_page * 3, shuffle=shuffle
+            db, user_id=user.id, limit=60, shuffle=shuffle
         )
-        total = len(recs)
-        start = (page - 1) * per_page
-        page_recs = recs[start:start + per_page]
-        for r in page_recs:
+        for r in recs:
             r["poster_path"] = tmdb.poster_url(r["poster_path"])
         return {
-            "results": page_recs,
-            "page": page,
-            "total": total,
-            "total_pages": max(1, -(-total // per_page)),
+            "results": recs,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -895,20 +888,13 @@ async def get_tv_recs(
     db: Session = Depends(get_db),
 ):
     try:
-        per_page = 20
         recs = await rec_service.get_tv_recommendations(
-            db, user_id=user.id, limit=per_page * 3, shuffle=shuffle
+            db, user_id=user.id, limit=60, shuffle=shuffle
         )
-        total = len(recs)
-        start = (page - 1) * per_page
-        page_recs = recs[start:start + per_page]
-        for r in page_recs:
+        for r in recs:
             r["poster_path"] = tmdb.poster_url(r["poster_path"])
         return {
-            "results": page_recs,
-            "page": page,
-            "total": total,
-            "total_pages": max(1, -(-total // per_page)),
+            "results": recs,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -922,18 +908,11 @@ async def get_anime_recs(
     db: Session = Depends(get_db),
 ):
     try:
-        per_page = 20
         recs = await rec_service.get_anime_recommendations(
-            db, user_id=user.id, limit=per_page * 3, shuffle=shuffle
+            db, user_id=user.id, limit=60, shuffle=shuffle
         )
-        total = len(recs)
-        start = (page - 1) * per_page
-        page_recs = recs[start:start + per_page]
         return {
-            "results": page_recs,
-            "page": page,
-            "total": total,
-            "total_pages": max(1, -(-total // per_page)),
+            "results": recs,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
