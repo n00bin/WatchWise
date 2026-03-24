@@ -211,7 +211,7 @@ def _migrate_db():
 def init_db():
     _migrate_db()
     # Import models so create_all knows about them
-    from app.models import user, media, feedback  # noqa: F401
+    from app.models import user, media, feedback, announcement  # noqa: F401
 
     # Add missing columns to existing tables (PostgreSQL + SQLite)
     # Add missing columns to existing tables

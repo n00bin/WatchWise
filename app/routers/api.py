@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.models.database import get_db
 from app.models.media import Movie, TVShow, Genre, Anime, movie_genres, tvshow_genres
 from app.models.feedback import Feedback, FeedbackVote
+from app.models.announcement import Announcement, AnnouncementRead
 from app.models.user import User
 from app.services import tmdb, jikan
 from app.services import recommendations as rec_service
@@ -1026,6 +1027,78 @@ async def toggle_vote(feedback_id: int, user: User = Depends(get_current_user), 
         db.add(vote)
         db.commit()
         return {"status": "ok", "voted": True}
+
+
+# ─── Announcements ───────────────────────────────────────────────────
+
+@router.get("/announcements")
+async def get_announcements(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    items = db.query(Announcement).order_by(Announcement.created_at.desc()).limit(20).all()
+    read_ids = {
+        r.announcement_id
+        for r in db.query(AnnouncementRead).filter(AnnouncementRead.user_id == user.id).all()
+    }
+
+    return [
+        {
+            "id": a.id,
+            "title": a.title,
+            "message": a.message,
+            "type": a.type,
+            "created_at": a.created_at.isoformat() if a.created_at else "",
+            "is_read": a.id in read_ids,
+        }
+        for a in items
+    ]
+
+
+@router.get("/announcements/unread-count")
+async def get_unread_count(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    total = db.query(Announcement).count()
+    read = db.query(AnnouncementRead).filter(AnnouncementRead.user_id == user.id).count()
+    return {"unread": max(total - read, 0)}
+
+
+@router.post("/announcements/mark-read")
+async def mark_announcements_read(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    all_ids = [a.id for a in db.query(Announcement.id).all()]
+    read_ids = {
+        r.announcement_id
+        for r in db.query(AnnouncementRead).filter(AnnouncementRead.user_id == user.id).all()
+    }
+    for aid in all_ids:
+        if aid not in read_ids:
+            db.add(AnnouncementRead(announcement_id=aid, user_id=user.id))
+    db.commit()
+    return {"status": "ok"}
+
+
+@router.post("/announcements")
+async def create_announcement(data: dict, user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    title = data.get("title", "").strip()
+    message = data.get("message", "").strip()
+    ann_type = data.get("type", "update").strip()
+
+    if not title:
+        raise HTTPException(status_code=400, detail="Title is required")
+    if ann_type not in ("update", "feature", "fix", "info"):
+        ann_type = "update"
+
+    item = Announcement(title=title, message=message, type=ann_type)
+    db.add(item)
+    db.commit()
+    return {"status": "ok", "id": item.id}
+
+
+@router.delete("/announcements/{announcement_id}")
+async def delete_announcement(announcement_id: int, user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    item = db.query(Announcement).filter(Announcement.id == announcement_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Announcement not found")
+    db.query(AnnouncementRead).filter(AnnouncementRead.announcement_id == announcement_id).delete()
+    db.delete(item)
+    db.commit()
+    return {"status": "ok"}
 
 
 # ─── Admin ───────────────────────────────────────────────────────────

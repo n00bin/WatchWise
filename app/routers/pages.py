@@ -59,6 +59,11 @@ async def recommendations_page(request: Request):
     return templates.TemplateResponse(request, "recommendations.html", {"page": "recommendations"})
 
 
+@router.get("/news")
+async def announcements_page(request: Request):
+    return templates.TemplateResponse(request, "announcements.html", {"page": "news"})
+
+
 @router.get("/feedback")
 async def feedback_page(request: Request):
     return templates.TemplateResponse(request, "feedback.html", {"page": "feedback"})
