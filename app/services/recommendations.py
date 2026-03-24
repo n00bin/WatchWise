@@ -212,8 +212,8 @@ async def _collect_tastedive_recs(loved_items, tracked_ids, candidates, search_f
     td_results = []
     seen = set()
 
-    # Send batches of 5 titles — more batches = more diverse results
-    for i in range(0, min(len(all_titles), 30), 5):
+    # Send loved titles in batches of 5 (up to 50 titles = 10 API calls)
+    for i in range(0, min(len(all_titles), 50), 5):
         batch = all_titles[i:i+5]
         if not batch:
             break
@@ -259,9 +259,9 @@ async def _collect_trakt_recs(loved_items, tracked_ids, candidates, fetch_relate
     if not loved_items:
         return
 
-    for item in loved_items[:20]:
+    for item in loved_items[:50]:
         try:
-            related = await fetch_related(tmdb_id=item.tmdb_id, limit=15)
+            related = await fetch_related(tmdb_id=item.tmdb_id, limit=10)
             for rel in related:
                 rel_tmdb_id = rel.get("tmdb_id")
                 if not rel_tmdb_id or rel_tmdb_id in tracked_ids:
