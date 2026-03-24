@@ -251,48 +251,58 @@ async def _collect_tastedive_recs(loved_items, tracked_ids, candidates, search_f
             continue
 
 
-async def _collect_trakt_recs(loved_items, tracked_ids, candidates, fetch_related, search_fn, media_type):
-    """Trakt community-driven related content.
-    Uses Trakt's /related endpoint curated by real user lists,
-    then looks up results on TMDB for metadata/posters."""
+async def _fetch_one_trakt(item, tracked_ids, candidates, fetch_related, search_fn, media_type):
+    """Fetch Trakt related for a single item."""
+    try:
+        related = await fetch_related(tmdb_id=item.tmdb_id, limit=10)
+        for rel in related:
+            rel_tmdb_id = rel.get("tmdb_id")
+            if not rel_tmdb_id or rel_tmdb_id in tracked_ids:
+                continue
 
+            c = candidates[rel_tmdb_id]
+            if c["data"] is None:
+                try:
+                    search_data = await search_fn(rel["title"])
+                    tmdb_results = search_data.get("results", [])
+                    if not tmdb_results:
+                        continue
+                    best = None
+                    for sr in tmdb_results:
+                        if sr["id"] == rel_tmdb_id:
+                            best = sr
+                            break
+                    if not best:
+                        best = tmdb_results[0]
+                    c["data"] = best
+                    c["media_type"] = media_type
+                    c["trakt"] = True
+                except Exception:
+                    continue
+
+            label = f"Related to {item.title}"
+            if label not in c["sources"]:
+                c["sources"].append(label)
+                c["frequency"] += 3
+    except Exception:
+        pass
+
+
+async def _collect_trakt_recs(loved_items, tracked_ids, candidates, fetch_related, search_fn, media_type):
+    """Trakt community-driven related content — parallelized."""
     if not loved_items:
         return
 
-    for item in loved_items[:50]:
-        try:
-            related = await fetch_related(tmdb_id=item.tmdb_id, limit=10)
-            for rel in related:
-                rel_tmdb_id = rel.get("tmdb_id")
-                if not rel_tmdb_id or rel_tmdb_id in tracked_ids:
-                    continue
+    import asyncio
 
-                c = candidates[rel_tmdb_id]
-                if c["data"] is None:
-                    try:
-                        search_data = await search_fn(rel["title"])
-                        tmdb_results = search_data.get("results", [])
-                        if not tmdb_results:
-                            continue
-                        best = None
-                        for sr in tmdb_results:
-                            if sr["id"] == rel_tmdb_id:
-                                best = sr
-                                break
-                        if not best:
-                            best = tmdb_results[0]
-                        c["data"] = best
-                        c["media_type"] = media_type
-                        c["trakt"] = True
-                    except Exception:
-                        continue
-
-                label = f"Related to {item.title}"
-                if label not in c["sources"]:
-                    c["sources"].append(label)
-                    c["frequency"] += 3
-        except Exception:
-            continue
+    # Process in batches of 10 concurrently to avoid overwhelming the API
+    items = loved_items[:50]
+    for i in range(0, len(items), 10):
+        batch = items[i:i+10]
+        await asyncio.gather(*[
+            _fetch_one_trakt(item, tracked_ids, candidates, fetch_related, search_fn, media_type)
+            for item in batch
+        ])
 
 
 # ─── Movie Recommendations ──────────────────────────────────────────
@@ -357,20 +367,20 @@ async def get_movie_recommendations(db: Session, user_id: int, limit: int = 100,
             except Exception:
                 pass
 
-    # TasteDive: collaborative filtering
+    # TasteDive + Trakt run concurrently
     if loved_movies:
-        await _collect_tastedive_recs(
-            loved_movies, tracked_ids, candidates,
-            tmdb.search_movies, tastedive.get_movie_recs,
-            "movie"
-        )
-
-    # Trakt: community-driven related content
-    if loved_movies:
-        await _collect_trakt_recs(
-            loved_movies, tracked_ids, candidates,
-            trakt.get_related_movies, tmdb.search_movies,
-            "movie"
+        import asyncio
+        await asyncio.gather(
+            _collect_tastedive_recs(
+                loved_movies, tracked_ids, candidates,
+                tmdb.search_movies, tastedive.get_movie_recs,
+                "movie"
+            ),
+            _collect_trakt_recs(
+                loved_movies, tracked_ids, candidates,
+                trakt.get_related_movies, tmdb.search_movies,
+                "movie"
+            ),
         )
 
     # Score and sort
@@ -461,20 +471,20 @@ async def get_tv_recommendations(db: Session, user_id: int, limit: int = 100, sh
             except Exception:
                 pass
 
-    # TasteDive: collaborative filtering
+    # TasteDive + Trakt run concurrently
     if loved_shows:
-        await _collect_tastedive_recs(
-            loved_shows, tracked_ids, candidates,
-            tmdb.search_tv, tastedive.get_tv_recs,
-            "tv"
-        )
-
-    # Trakt: community-driven related content
-    if loved_shows:
-        await _collect_trakt_recs(
-            loved_shows, tracked_ids, candidates,
-            trakt.get_related_shows, tmdb.search_tv,
-            "tv"
+        import asyncio
+        await asyncio.gather(
+            _collect_tastedive_recs(
+                loved_shows, tracked_ids, candidates,
+                tmdb.search_tv, tastedive.get_tv_recs,
+                "tv"
+            ),
+            _collect_trakt_recs(
+                loved_shows, tracked_ids, candidates,
+                trakt.get_related_shows, tmdb.search_tv,
+                "tv"
+            ),
         )
 
     # Score and sort
