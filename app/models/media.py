@@ -20,6 +20,19 @@ tvshow_genres = Table(
 )
 
 
+class DismissedRec(Base):
+    __tablename__ = "dismissed_recs"
+    __table_args__ = (
+        UniqueConstraint("user_id", "media_type", "external_id", name="uq_dismissed_user_media"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    media_type = Column(String(10), nullable=False)  # movie, tv, anime
+    external_id = Column(Integer, nullable=False)  # tmdb_id or mal_id
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class Genre(Base):
     __tablename__ = "genres"
 

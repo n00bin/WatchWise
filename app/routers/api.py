@@ -8,7 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db
-from app.models.media import Movie, TVShow, Genre, Anime, movie_genres, tvshow_genres
+from app.models.media import Movie, TVShow, Genre, Anime, DismissedRec, movie_genres, tvshow_genres
 from app.models.feedback import Feedback, FeedbackVote
 from app.models.announcement import Announcement, AnnouncementRead
 from app.models.user import User
@@ -916,6 +916,29 @@ async def get_anime_recs(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── Dismiss Recommendations ─────────────────────────────────────────
+
+@router.post("/recommendations/dismiss")
+async def dismiss_recommendation(data: dict, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    media_type = data.get("media_type", "")
+    external_id = data.get("external_id")
+
+    if not external_id or media_type not in ("movie", "tv", "anime"):
+        raise HTTPException(status_code=400, detail="media_type and external_id required")
+
+    existing = db.query(DismissedRec).filter(
+        DismissedRec.user_id == user.id,
+        DismissedRec.media_type == media_type,
+        DismissedRec.external_id == external_id,
+    ).first()
+
+    if not existing:
+        db.add(DismissedRec(user_id=user.id, media_type=media_type, external_id=external_id))
+        db.commit()
+
+    return {"status": "ok"}
 
 
 # ─── Feedback ────────────────────────────────────────────────────────

@@ -24,7 +24,7 @@ from datetime import datetime
 from collections import defaultdict
 from sqlalchemy.orm import Session
 
-from app.models.media import Movie, TVShow, Anime
+from app.models.media import Movie, TVShow, Anime, DismissedRec
 from app.services import tmdb, jikan, tastedive, trakt, collaborative
 
 
@@ -324,6 +324,8 @@ async def get_movie_recommendations(db: Session, user_id: int, limit: int = 100,
         return []
 
     tracked_ids = {m.tmdb_id for m in db.query(Movie).filter(Movie.user_id == user_id).all()}
+    dismissed_ids = {d.external_id for d in db.query(DismissedRec).filter(DismissedRec.user_id == user_id, DismissedRec.media_type == "movie").all()}
+    tracked_ids |= dismissed_ids
 
     candidates = defaultdict(lambda: {
         "data": None,
@@ -422,6 +424,8 @@ async def get_tv_recommendations(db: Session, user_id: int, limit: int = 100, sh
         return []
 
     tracked_ids = {s.tmdb_id for s in db.query(TVShow).filter(TVShow.user_id == user_id).all()}
+    dismissed_ids = {d.external_id for d in db.query(DismissedRec).filter(DismissedRec.user_id == user_id, DismissedRec.media_type == "tv").all()}
+    tracked_ids |= dismissed_ids
 
     candidates = defaultdict(lambda: {
         "data": None,
@@ -554,6 +558,8 @@ async def get_anime_recommendations(db: Session, user_id: int, limit: int = 100,
         return []
 
     tracked_ids = {a.mal_id for a in db.query(Anime).filter(Anime.user_id == user_id).all()}
+    dismissed_ids = {d.external_id for d in db.query(DismissedRec).filter(DismissedRec.user_id == user_id, DismissedRec.media_type == "anime").all()}
+    tracked_ids |= dismissed_ids
 
     candidates = {}
 
