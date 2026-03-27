@@ -41,6 +41,7 @@
     <button class="tab-btn active" data-type="movies" onclick="showRecType('movies')">Movies</button>
     <button class="tab-btn" data-type="tvshows" onclick="showRecType('tvshows')">TV Shows</button>
     <button class="tab-btn" data-type="anime" onclick="showRecType('anime')">Anime</button>
+    <button class="tab-btn" data-type="skipped" onclick="showSkipped()" style="margin-left:auto;font-size:0.78rem;color:var(--text-muted)">Skipped</button>
 </div>
 
 <div id="recContent">
@@ -378,6 +379,72 @@ async function doRecAction(status) {
         } else {
             showToast(`Error: ${err.message}`, 'error');
         }
+    }
+}
+
+async function showSkipped() {
+    document.querySelectorAll('#recTabs .tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === 'skipped');
+    });
+
+    const container = document.getElementById('recContent');
+    container.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+    // Load skipped for all types
+    try {
+        const [movies, tv, anime] = await Promise.all([
+            api('/api/recommendations/dismissed?media_type=movie'),
+            api('/api/recommendations/dismissed?media_type=tv'),
+            api('/api/recommendations/dismissed?media_type=anime'),
+        ]);
+
+        const all = [...movies, ...tv, ...anime];
+
+        if (all.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3>No skipped titles</h3>
+                    <p>Titles you mark as "Not Interested" will appear here so you can reconsider them later.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="media-grid">
+                ${all.map(item => {
+                    const poster = item.poster_path || item.poster_url || '';
+                    const title = item.title;
+                    const year = (item.release_date || item.first_air_date || '').substring(0, 4);
+                    const typeLabel = item.media_type === 'movie' ? 'Movie' : item.media_type === 'tv' ? 'TV' : 'Anime';
+                    return `
+                        <div class="rec-card" style="cursor:default">
+                            <div class="poster-wrap">
+                                ${poster ? `<img src="${poster}" alt="${escapeHtml(title)}" loading="lazy">` : '<div class="no-poster">No Poster</div>'}
+                                <div class="rec-score" style="background:var(--border);color:var(--text-muted)">${typeLabel}</div>
+                            </div>
+                            <div class="card-info">
+                                <div class="card-title" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+                                ${year ? `<div class="card-meta"><span>${year}</span></div>` : ''}
+                                <button class="btn btn-secondary btn-sm" style="margin-top:6px;width:100%;font-size:0.75rem" onclick="undoDismiss(${item.id}, this)">Undo Skip</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = `<div class="empty-state"><p>${err.message}</p></div>`;
+    }
+}
+
+async function undoDismiss(dismissedId, btn) {
+    try {
+        await api(`/api/recommendations/dismissed/${dismissedId}`, { method: 'DELETE' });
+        btn.closest('.rec-card').remove();
+        showToast('Restored — will show in recommendations again', 'success');
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
     }
 }
 

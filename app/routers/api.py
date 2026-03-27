@@ -941,6 +941,76 @@ async def dismiss_recommendation(data: dict, user: User = Depends(get_current_us
     return {"status": "ok"}
 
 
+@router.get("/recommendations/dismissed")
+async def get_dismissed(
+    media_type: str = Query("movie"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get dismissed recommendations with metadata."""
+    dismissed = db.query(DismissedRec).filter(
+        DismissedRec.user_id == user.id,
+        DismissedRec.media_type == media_type,
+    ).order_by(DismissedRec.created_at.desc()).all()
+
+    results = []
+    for d in dismissed:
+        if media_type in ("movie", "tv"):
+            # Look up from TMDB
+            try:
+                if media_type == "movie":
+                    details = await tmdb.get_movie_details(d.external_id)
+                    results.append({
+                        "id": d.id,
+                        "tmdb_id": d.external_id,
+                        "title": details.get("title", ""),
+                        "poster_path": tmdb.poster_url(details.get("poster_path", ""), "w185"),
+                        "release_date": details.get("release_date", ""),
+                        "tmdb_rating": details.get("vote_average", 0),
+                        "media_type": media_type,
+                    })
+                else:
+                    details = await tmdb.get_tv_details(d.external_id)
+                    results.append({
+                        "id": d.id,
+                        "tmdb_id": d.external_id,
+                        "title": details.get("name", ""),
+                        "poster_path": tmdb.poster_url(details.get("poster_path", ""), "w185"),
+                        "first_air_date": details.get("first_air_date", ""),
+                        "tmdb_rating": details.get("vote_average", 0),
+                        "media_type": media_type,
+                    })
+            except Exception:
+                continue
+        else:
+            # Anime - look up from Jikan
+            try:
+                details = await jikan.get_anime_details(d.external_id)
+                images = details.get("images", {}).get("jpg", {})
+                results.append({
+                    "id": d.id,
+                    "mal_id": d.external_id,
+                    "title": details.get("title_english") or details.get("title", ""),
+                    "poster_url": images.get("image_url", ""),
+                    "mal_score": details.get("score", 0) or 0,
+                    "media_type": "anime",
+                })
+            except Exception:
+                continue
+
+    return results
+
+
+@router.delete("/recommendations/dismissed/{dismissed_id}")
+async def undo_dismiss(dismissed_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    item = db.query(DismissedRec).filter(DismissedRec.id == dismissed_id, DismissedRec.user_id == user.id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Not found")
+    db.delete(item)
+    db.commit()
+    return {"status": "ok"}
+
+
 # ─── Feedback ────────────────────────────────────────────────────────
 
 @router.get("/feedback")
