@@ -83,6 +83,53 @@ function filterFeedback(type) {
     renderFeedback();
 }
 
+function isResolved(status) {
+    return status === 'done' || status === 'closed';
+}
+
+function renderFeedbackCard(f) {
+    const typeColor = f.type === 'feature' ? '#7c3aed' : '#ef4444';
+    const typeLabel = f.type === 'feature' ? 'Feature' : 'Issue';
+    const resolved = isResolved(f.status);
+    const statusColor = f.status === 'done' ? 'var(--success)' : f.status === 'closed' ? 'var(--text-dim)' : f.status === 'in_progress' ? '#f59e0b' : 'var(--text-dim)';
+    const statusLabel = f.status === 'done' ? 'Fixed' : f.status === 'closed' ? 'Closed' : f.status === 'in_progress' ? 'In Progress' : '';
+
+    const voteBtn = resolved
+        ? `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:50px;opacity:0.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                <span style="font-weight:700;font-size:0.9rem;color:var(--text-dim)">${f.vote_count}</span>
+           </div>`
+        : `<button onclick="toggleVote(${f.id})" style="display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:1px solid ${f.user_voted ? 'var(--primary)' : 'var(--border)'};border-radius:8px;padding:8px 10px;cursor:pointer;min-width:50px;transition:all 0.2s;${f.user_voted ? 'background:rgba(124,58,237,0.1)' : ''}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="${f.user_voted ? 'var(--primary)' : 'none'}" stroke="${f.user_voted ? 'var(--primary)' : 'var(--text-muted)'}" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                <span style="font-weight:700;font-size:0.9rem;color:${f.user_voted ? 'var(--primary)' : 'var(--text)'}">${f.vote_count}</span>
+           </button>`;
+
+    return `
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;gap:16px;align-items:flex-start;${resolved ? 'opacity:0.7' : ''}">
+            ${voteBtn}
+            <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+                    <span style="font-size:0.7rem;font-weight:600;color:white;background:${typeColor};padding:2px 8px;border-radius:4px;text-transform:uppercase">${typeLabel}</span>
+                    ${statusLabel ? `<span style="font-size:0.7rem;color:${statusColor};font-weight:600;text-transform:uppercase">${statusLabel}</span>` : ''}
+                </div>
+                <div style="font-weight:600;font-size:0.9rem;color:var(--text);margin-bottom:4px">${escapeHtml(f.title)}</div>
+                ${f.description ? `<div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5">${escapeHtml(f.description)}</div>` : ''}
+                ${isAdmin ? `
+                    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                        <select onchange="updateFeedbackStatus(${f.id}, this.value)" style="font-size:0.75rem;padding:3px 8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;font-family:inherit">
+                            <option value="open" ${f.status==='open'?'selected':''}>Open</option>
+                            <option value="in_progress" ${f.status==='in_progress'?'selected':''}>In Progress</option>
+                            <option value="done" ${f.status==='done'?'selected':''}>Done</option>
+                            <option value="closed" ${f.status==='closed'?'selected':''}>Closed</option>
+                        </select>
+                        <button onclick="deleteFeedback(${f.id})" style="font-size:0.75rem;padding:3px 8px;background:none;color:var(--danger);border:1px solid rgba(239,68,68,0.3);border-radius:4px;cursor:pointer;font-family:inherit">Delete</button>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
 function renderFeedback() {
     const container = document.getElementById('feedbackList');
     const filtered = currentFilter
@@ -103,41 +150,26 @@ function renderFeedback() {
         return;
     }
 
-    container.innerHTML = filtered.map(f => {
-        const typeColor = f.type === 'feature' ? '#7c3aed' : '#ef4444';
-        const typeLabel = f.type === 'feature' ? 'Feature' : 'Issue';
-        const statusColor = f.status === 'done' ? 'var(--success)' : f.status === 'in_progress' ? '#f59e0b' : 'var(--text-dim)';
+    const active = filtered.filter(f => !isResolved(f.status)).sort((a, b) => b.vote_count - a.vote_count);
+    const resolved = filtered.filter(f => isResolved(f.status)).sort((a, b) => b.vote_count - a.vote_count);
 
-        return `
-            <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;gap:16px;align-items:flex-start">
-                <button onclick="toggleVote(${f.id})" style="display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:1px solid ${f.user_voted ? 'var(--primary)' : 'var(--border)'};border-radius:8px;padding:8px 10px;cursor:pointer;min-width:50px;transition:all 0.2s;${f.user_voted ? 'background:rgba(124,58,237,0.1)' : ''}">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="${f.user_voted ? 'var(--primary)' : 'none'}" stroke="${f.user_voted ? 'var(--primary)' : 'var(--text-muted)'}" stroke-width="2">
-                        <path d="M12 19V5M5 12l7-7 7 7"/>
-                    </svg>
-                    <span style="font-weight:700;font-size:0.9rem;color:${f.user_voted ? 'var(--primary)' : 'var(--text)'}">${f.vote_count}</span>
-                </button>
-                <div style="flex:1;min-width:0">
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
-                        <span style="font-size:0.7rem;font-weight:600;color:white;background:${typeColor};padding:2px 8px;border-radius:4px;text-transform:uppercase">${typeLabel}</span>
-                        ${f.status !== 'open' ? `<span style="font-size:0.7rem;color:${statusColor};font-weight:600;text-transform:uppercase">${f.status.replace('_', ' ')}</span>` : ''}
-                    </div>
-                    <div style="font-weight:600;font-size:0.9rem;color:var(--text);margin-bottom:4px">${escapeHtml(f.title)}</div>
-                    ${f.description ? `<div style="font-size:0.78rem;color:var(--text-muted);line-height:1.5">${escapeHtml(f.description)}</div>` : ''}
-                    ${isAdmin ? `
-                        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-                            <select onchange="updateFeedbackStatus(${f.id}, this.value)" style="font-size:0.75rem;padding:3px 8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;font-family:inherit">
-                                <option value="open" ${f.status==='open'?'selected':''}>Open</option>
-                                <option value="in_progress" ${f.status==='in_progress'?'selected':''}>In Progress</option>
-                                <option value="done" ${f.status==='done'?'selected':''}>Done</option>
-                                <option value="closed" ${f.status==='closed'?'selected':''}>Closed</option>
-                            </select>
-                            <button onclick="deleteFeedback(${f.id})" style="font-size:0.75rem;padding:3px 8px;background:none;color:var(--danger);border:1px solid rgba(239,68,68,0.3);border-radius:4px;cursor:pointer;font-family:inherit">Delete</button>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
+    let html = '';
+
+    if (active.length > 0) {
+        html += `<div style="margin-bottom:8px;font-size:0.82rem;font-weight:600;color:var(--text-muted)">Active (${active.length})</div>`;
+        html += active.map(f => renderFeedbackCard(f)).join('');
+    }
+
+    if (resolved.length > 0) {
+        html += `
+            <details style="margin-top:20px">
+                <summary style="font-size:0.82rem;font-weight:600;color:var(--text-dim);cursor:pointer;margin-bottom:8px">Resolved (${resolved.length})</summary>
+                ${resolved.map(f => renderFeedbackCard(f)).join('')}
+            </details>
         `;
-    }).join('');
+    }
+
+    container.innerHTML = html;
 }
 
 async function toggleVote(feedbackId) {

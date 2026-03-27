@@ -1085,6 +1085,9 @@ async def toggle_vote(feedback_id: int, user: User = Depends(get_current_user), 
     if not item:
         raise HTTPException(status_code=404, detail="Feedback not found")
 
+    if item.status in ("done", "closed"):
+        raise HTTPException(status_code=400, detail="Cannot vote on resolved items")
+
     existing = db.query(FeedbackVote).filter(
         FeedbackVote.feedback_id == feedback_id,
         FeedbackVote.user_id == user.id,
