@@ -1,6 +1,6 @@
 {
-  "name": "WatchWise - Movie & TV Tracker",
-  "short_name": "WatchWise",
+  "name": "BingeWatcher - Movie & TV Tracker",
+  "short_name": "BingeWatcher",
   "description": "Track movies, TV shows & anime. Get smart recommendations based on your taste.",
   "start_url": "/",
   "scope": "/",

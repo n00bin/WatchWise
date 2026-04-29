@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watchwise-v1';
+const CACHE_NAME = 'bingewatcher-v2';
 
 // Cache key pages and static assets on install
 self.addEventListener('install', (event) => {

@@ -1,7 +1,7 @@
 """
 Internal collaborative filtering engine.
 
-Builds recommendations from WatchWise users' own rating data.
+Builds recommendations from BingeWatcher users' own rating data.
 Auto-scales weight based on how many active raters exist.
 
 Thresholds:

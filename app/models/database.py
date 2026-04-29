@@ -27,7 +27,7 @@ def _migrate_db():
     if not DATABASE_URL.startswith("sqlite"):
         return
 
-    db_path = DATA_DIR / "watchwise.db"
+    db_path = DATA_DIR / "bingewatcher.db"
     if not db_path.exists():
         return
 
@@ -78,7 +78,7 @@ def _migrate_db():
         from app.services.auth import hash_password
         cursor.execute(
             "INSERT INTO users (id, username, email, password_hash, created_at) VALUES (1, ?, ?, ?, datetime('now'))",
-            ("admin", "admin@watchwise.local", hash_password("watchwise")),
+            ("admin", "admin@bingewatcher.local", hash_password("bingewatcher")),
         )
 
     # Recreate media tables with user_id + compound unique constraint

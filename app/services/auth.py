@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.models.database import get_db
 from app.models.user import User
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "watchwise-dev-secret-change-in-production")
+JWT_SECRET = os.environ.get("JWT_SECRET", "bingewatcher-dev-secret-change-in-production")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_DAYS = 7
 

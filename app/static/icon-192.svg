@@ -1,8 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <rect width="192" height="192" rx="40" fill="#0a0a0f"/>
-  <rect x="24" y="24" width="144" height="144" rx="16" fill="none" stroke="#7c3aed" stroke-width="8"/>
-  <line x1="64" y1="24" x2="64" y2="168" stroke="#7c3aed" stroke-width="6" opacity="0.6"/>
-  <line x1="128" y1="24" x2="128" y2="168" stroke="#7c3aed" stroke-width="6" opacity="0.6"/>
-  <line x1="24" y1="96" x2="168" y2="96" stroke="#7c3aed" stroke-width="6" opacity="0.6"/>
-  <polygon points="96,52 107,78 136,78 113,94 121,120 96,105 71,120 79,94 56,78 85,78" fill="#f59e0b"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="192" height="192">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0a1a"/>
+      <stop offset="100%" style="stop-color:#1a0e2e"/>
+    </linearGradient>
+    <linearGradient id="purple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a855f7"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22d3ee"/>
+      <stop offset="100%" style="stop-color:#06b6d4"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="playGlow">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+  <ellipse cx="256" cy="220" rx="140" ry="100" fill="rgba(124,58,237,0.06)"/>
+  <rect x="96" y="100" width="320" height="240" rx="20" fill="none" stroke="url(#purple)" stroke-width="14" filter="url(#glow)"/>
+  <rect x="110" y="114" width="292" height="212" rx="12" fill="rgba(124,58,237,0.05)"/>
+  <polygon points="224,176 224,264 304,220" fill="url(#cyan)" filter="url(#playGlow)"/>
+  <line x1="216" y1="340" x2="192" y2="396" stroke="url(#purple)" stroke-width="10" stroke-linecap="round"/>
+  <line x1="296" y1="340" x2="320" y2="396" stroke="url(#purple)" stroke-width="10" stroke-linecap="round"/>
+  <line x1="172" y1="396" x2="340" y2="396" stroke="url(#purple)" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="384" cy="144" r="9" fill="#f59e0b"/>
+  <circle cx="384" cy="176" r="7" fill="#f59e0b" opacity="0.55"/>
+  <circle cx="384" cy="204" r="5" fill="#f59e0b" opacity="0.25"/>
 </svg>

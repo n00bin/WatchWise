@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from app.models.database import init_db
 from app.routers import pages, api, auth
 
-app = FastAPI(title="WatchWise")
+app = FastAPI(title="BingeWatcher")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 

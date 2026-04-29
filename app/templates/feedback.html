@@ -229,7 +229,7 @@ async function submitFeedback() {
             method: 'POST',
             body: { type: submitType, title, description },
         });
-        showToast('Feedback submitted! Thanks for helping improve WatchWise.', 'success');
+        showToast('Feedback submitted! Thanks for helping improve BingeWatcher.', 'success');
         closeSubmitModal();
         loadPageData();
     } catch (err) {

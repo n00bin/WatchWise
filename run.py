@@ -32,7 +32,7 @@ def main():
     port = 8500
 
     local_ip = get_local_ip()
-    print(f"\n  WatchWise is running!")
+    print(f"\n  BingeWatcher is running!")
     print(f"  Local:   http://localhost:{port}")
     print(f"  Phone:   http://{local_ip}:{port}")
     print()
@@ -46,7 +46,7 @@ def main():
 
         import webview
         webview.create_window(
-            "WatchWise",
+            "BingeWatcher",
             f"http://localhost:{port}",
             width=1200,
             height=800,

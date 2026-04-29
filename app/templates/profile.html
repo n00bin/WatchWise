@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WatchWise - {{ username }}'s Profile</title>
+    <title>BingeWatcher - {{ username }}'s Profile</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <meta name="theme-color" content="#7c3aed">
-    <meta property="og:title" content="{{ username }}'s WatchWise Profile">
-    <meta property="og:description" content="Check out what {{ username }} is watching and their top-rated picks on WatchWise.">
+    <meta property="og:title" content="{{ username }}'s BingeWatcher Profile">
+    <meta property="og:description" content="Check out what {{ username }} is watching and their top-rated picks on BingeWatcher.">
     <meta property="og:type" content="profile">
     <style>
         body { padding: 0; }
@@ -92,8 +92,8 @@
                 document.getElementById('profileContent').innerHTML = `
                     <div class="profile-error">
                         <h2>User not found</h2>
-                        <p>No WatchWise user with that username exists.</p>
-                        <a href="/login" style="color:var(--primary-light)">Join WatchWise</a>
+                        <p>No BingeWatcher user with that username exists.</p>
+                        <a href="/login" style="color:var(--primary-light)">Join BingeWatcher</a>
                     </div>
                 `;
                 return;
@@ -201,7 +201,7 @@
         html += `
             <div class="profile-cta">
                 <p>Track your movies, TV shows & anime. Get recommendations powered by the community.</p>
-                <a href="/login">Join WatchWise</a>
+                <a href="/login">Join BingeWatcher</a>
             </div>
         `;
 

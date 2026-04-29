@@ -645,11 +645,11 @@ async def get_stats(user: User = Depends(get_current_user), db: Session = Depend
     }
 
 
-# ─── Trending on WatchWise ────────────────────────────────────────────
+# ─── Trending on BingeWatcher ────────────────────────────────────────────
 
 @router.get("/trending")
 async def get_trending(db: Session = Depends(get_db)):
-    """Global trending on WatchWise — most rated titles across all users."""
+    """Global trending on BingeWatcher — most rated titles across all users."""
     week_ago = datetime.utcnow() - timedelta(days=7)
 
     trending_movies = (

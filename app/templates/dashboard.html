@@ -14,7 +14,7 @@
             <line x1="17" y1="2" x2="17" y2="22"></line>
             <line x1="2" y1="12" x2="22" y2="12"></line>
         </svg>
-        <h2 style="font-size:1.5rem;font-weight:700;color:var(--text);margin-bottom:8px">Welcome to WatchWise!</h2>
+        <h2 style="font-size:1.5rem;font-weight:700;color:var(--text);margin-bottom:8px">Welcome to BingeWatcher!</h2>
         <p style="color:var(--text-muted);font-size:0.9rem;line-height:1.6;margin-bottom:32px">
             Track what you watch, rate it, and discover new favorites powered by the community.
         </p>
@@ -142,7 +142,7 @@
 </div>
 
 <div style="margin-top:32px">
-    <h2 style="font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:16px">Trending on WatchWise</h2>
+    <h2 style="font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:16px">Trending on BingeWatcher</h2>
     <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:20px">What the community is watching and rating right now.</p>
 
     <div id="trendingContent">
@@ -322,7 +322,7 @@ function renderStats(s) {
     if (unrated > 0) {
         nudge.style.display = 'flex';
         document.getElementById('nudgeTitle').textContent = `You have ${unrated} unrated title${unrated > 1 ? 's' : ''}!`;
-        document.getElementById('nudgeText').textContent = `Rating them improves recommendations for you and the whole WatchWise community. Every rating helps.`;
+        document.getElementById('nudgeText').textContent = `Rating them improves recommendations for you and the whole BingeWatcher community. Every rating helps.`;
     }
 
     // Top genres

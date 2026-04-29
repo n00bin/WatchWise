@@ -339,7 +339,7 @@ async def get_movie_recommendations(db: Session, user_id: int, limit: int = 100,
         "keyword_bonus": 0,
     })
 
-    # Internal CF: WatchWise community (auto-activates with enough users)
+    # Internal CF: BingeWatcher community (auto-activates with enough users)
     cf_recs = collaborative.get_cf_movie_recs(db, user_id)
     for cf in cf_recs:
         tid = cf["tmdb_id"]
@@ -347,8 +347,8 @@ async def get_movie_recommendations(db: Session, user_id: int, limit: int = 100,
             continue
         c = candidates[tid]
         c["cf_weight"] = cf["cf_weight"]
-        if "WatchWise community" not in c["sources"]:
-            c["sources"].insert(0, "WatchWise community")
+        if "BingeWatcher community" not in c["sources"]:
+            c["sources"].insert(0, "BingeWatcher community")
             c["frequency"] += cf["supporter_count"]
         # Look up on TMDB if we don't have data yet
         if c["data"] is None:
@@ -439,7 +439,7 @@ async def get_tv_recommendations(db: Session, user_id: int, limit: int = 100, sh
         "keyword_bonus": 0,
     })
 
-    # Internal CF: WatchWise community
+    # Internal CF: BingeWatcher community
     cf_recs = collaborative.get_cf_tv_recs(db, user_id)
     for cf in cf_recs:
         tid = cf["tmdb_id"]
@@ -447,8 +447,8 @@ async def get_tv_recommendations(db: Session, user_id: int, limit: int = 100, sh
             continue
         c = candidates[tid]
         c["cf_weight"] = cf["cf_weight"]
-        if "WatchWise community" not in c["sources"]:
-            c["sources"].insert(0, "WatchWise community")
+        if "BingeWatcher community" not in c["sources"]:
+            c["sources"].insert(0, "BingeWatcher community")
             c["frequency"] += cf["supporter_count"]
         if c["data"] is None:
             try:
