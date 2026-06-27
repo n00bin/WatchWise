@@ -192,6 +192,12 @@
     <!-- Main Content -->
     <main class="main-content">
         {% block content %}{% endblock %}
+
+        <!-- Data-source attribution (required for IP / brand compliance) -->
+        <footer class="app-attribution" style="margin-top:48px;padding:24px 16px;border-top:1px solid var(--border);color:var(--text-dim);font-size:0.72rem;line-height:1.7;text-align:center">
+            <p style="margin:0 0 4px">This product uses the TMDB API but is not endorsed or certified by <a href="https://www.themoviedb.org/" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:none">TMDB</a>.</p>
+            <p style="margin:0">Anime data from <a href="https://myanimelist.net/" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:none">MyAnimeList</a> via Jikan. Recommendations powered by <a href="https://tastedive.com/" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:none">TasteDive</a> and <a href="https://trakt.tv/" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:none">Trakt</a>.</p>
+        </footer>
     </main>
 
     <!-- Search Modal -->
