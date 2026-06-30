@@ -1,10 +1,39 @@
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from app.services.settings import get_tmdb_key
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
+
+
+# Digital Asset Links — proves the Play Store app and this site belong together,
+# so the TWA opens full-screen (no browser URL bar) and passes verification.
+# Fingerprints below must match the keys the installed app is signed with.
+#  - upload key: from the PWABuilder "Google Play package" (signing-key-info.txt)
+#  - Play App Signing key: from Play Console → Setup → App integrity
+#    (ADD IT HERE once you copy it from the Console — see notes below)
+ASSETLINKS = [
+    {
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.onrender.watchwise_kmo5.twa",
+            "sha256_cert_fingerprints": [
+                # Upload key (PWABuilder)
+                "D4:22:72:B8:10:D4:44:6A:CD:54:EF:F4:8D:5D:B1:C1:9D:04:E8:D4:61:39:50:E7:8E:73:C2:43:F9:7A:9F:48",
+                # Play App Signing key — paste the SHA-256 from Play Console here:
+                # "XX:XX:...",
+            ],
+        },
+    }
+]
+
+
+@router.get("/.well-known/assetlinks.json")
+async def assetlinks():
+    return JSONResponse(ASSETLINKS)
 
 
 @router.get("/u/{username}")
