@@ -54,7 +54,9 @@ async def privacy_page(request: Request):
     return templates.TemplateResponse(request, "privacy.html", {"page": "privacy"})
 
 
-@router.get("/")
+# HEAD included for uptime monitors (UptimeRobot pings with HEAD; a bare
+# @router.get would return 405 and the monitor reports the site as down).
+@router.api_route("/", methods=["GET", "HEAD"])
 async def dashboard(request: Request):
     has_key = bool(get_tmdb_key())
     return templates.TemplateResponse(request, "dashboard.html", {
